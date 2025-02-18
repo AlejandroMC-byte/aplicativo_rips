@@ -5,21 +5,48 @@ function BuscadorFacturas() {
   const [facturas, setFacturas] = useState([]);
   const [filtros, setFiltros] = useState({ prefijo: "", factura_fiscal: "", fecha_registro: "" });
   const [mensaje, setMensaje] = useState("");
-
+  const [buscandoFacturas, setBuscandoFacturas] = useState(false);
   const buscarFacturas = async () => {
     const requestBody = { ...filtros, consultarFacturas: '1' };
-    // console.log("Request Body:", requestBody); // Log para verificar el cuerpo de la solicitud
-    const response = await fetch(`http://localhost:4000/api/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
-    const data = await response.json();
-    console.log("Response Data:", data); // Log para verificar la respuesta del servidor
-    setFacturas(Array.isArray(data.facturas) ? data.facturas : []);
-    setMensaje(data.message || "");
+    const toastId = toast.loading("Buscando facturas...");
+  
+    try {
+      setBuscandoFacturas(true); // Bloquea el buscador
+  
+      const response = await fetch(`http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+  
+      const data = await response.json();
+      console.log("Response Data:", data); // Depuración
+  
+      setFacturas(Array.isArray(data.facturas) ? data.facturas : []);
+      setMensaje(data.message || "");
+  
+      const esError = data.message?.includes("error") || !data.facturas?.length;
+  
+      toast.update(toastId, {
+        render: data.message || "Facturas cargadas correctamente",
+        type: esError ? "error" : "success",
+        isLoading: false,
+        autoClose: 2000
+      });
+  
+    } catch (error) {
+      console.error("Error al buscar facturas:", error);
+      toast.update(toastId, {
+        render: "Error al conectar con el servidor",
+        type: "error",
+        isLoading: false,
+        autoClose: 5000
+      });
+    } finally {
+      setBuscandoFacturas(false); // Desbloquea el buscador
+    }
   };
   const enviarRIPSfactura = async (factura) => {
     const requestBody = { ...factura, envioRips: '1' };
@@ -65,6 +92,16 @@ function BuscadorFacturas() {
       });
     }
   };
+  const formatearComoPesos = (valor) => {
+    // Convertir el valor a número
+    const numero = Number(valor);
+    
+    // Si el valor es inválido, devolver "$ 0"
+    if (isNaN(numero)) return "$ 0";
+  
+    // Formatear correctamente
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(numero);
+  };
   
 
   return (
@@ -81,7 +118,9 @@ function BuscadorFacturas() {
           <input className="form-control" type="date" onChange={(e) => setFiltros({ ...filtros, fecha_registro: e.target.value })} />
         </div>
         <div className="col-md-3">
-          <button className="btn btn-primary" onClick={buscarFacturas}>Buscar</button>
+        <button className="btn btn-primary" onClick={buscarFacturas} disabled={buscandoFacturas}>
+          {buscandoFacturas ? "Buscando..." : "Buscar Facturas"}
+        </button>
         </div>
       </div>
       {mensaje && (
@@ -113,7 +152,9 @@ function BuscadorFacturas() {
                 <td style={{ textAlign: "center" }}>{factura.factura_fiscal}</td>
                 <td style={{ textAlign: "center" }}>{factura.numerodecuenta}</td>
                 <td style={{ textAlign: "center" }}>{factura.estado}</td>
-                <td style={{ textAlign: "center" }}>{factura.total_factura}</td>
+                <td style={{ textAlign: "center" }}>
+                  {formatearComoPesos(factura.total_factura)}
+                </td>
                 <td style={{ textAlign: "center" }}>{factura.fecha_registro}</td>
                 <td style={{ textAlign: "center" }}>{factura.estado_fac_electronica}</td>
                 <td style={{ textAlign: "center" }}>{factura.estado_rips}</td>
