@@ -26,7 +26,7 @@ function BuscadorFacturas() {
     const toastId = toast.loading("Enviando RIPS electrónicos...");
   
     try {
-      const response = await fetch(`http://localhost:4000/api/`, {
+      const response = await fetch(`http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
