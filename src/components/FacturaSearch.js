@@ -98,6 +98,7 @@ function BuscadorFacturas() {
               <th style={{ textAlign: "center" }}>Factura Fiscal</th>
               <th style={{ textAlign: "center" }}>Cuenta</th>
               <th style={{ textAlign: "center" }}>Estado factura SIIS</th>
+              <th style={{ textAlign: "center" }}>Total Factura</th>
               <th style={{ textAlign: "center" }}>Fecha Registro</th>
               <th style={{ textAlign: "center" }}>Estado Factura Electronica</th>
               <th style={{ textAlign: "center" }}>Estado RIPS Electronico</th>
@@ -112,6 +113,7 @@ function BuscadorFacturas() {
                 <td style={{ textAlign: "center" }}>{factura.factura_fiscal}</td>
                 <td style={{ textAlign: "center" }}>{factura.numerodecuenta}</td>
                 <td style={{ textAlign: "center" }}>{factura.estado}</td>
+                <td style={{ textAlign: "center" }}>{factura.total_factura}</td>
                 <td style={{ textAlign: "center" }}>{factura.fecha_registro}</td>
                 <td style={{ textAlign: "center" }}>{factura.estado_fac_electronica}</td>
                 <td style={{ textAlign: "center" }}>{factura.estado_rips}</td>
