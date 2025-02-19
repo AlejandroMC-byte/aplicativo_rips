@@ -214,7 +214,7 @@ function BuscadorFacturas() {
                   <td style={{ textAlign: "center" }}>{factura.estado_fac_electronica}</td>
                   <td style={{ textAlign: "center" }}>{factura.estado_rips}</td>
                   <td>
-                    <BotonesJson jsonRespuesta={factura.json_respuesta} jsonRips={factura.json_rips} />
+                    <BotonesJson jsonRespuesta={factura.json_respuesta} prefijo={factura.prefijo} facturaFiscal = {factura.factura_fiscal} />
                   </td>
                   <td>
                     <button
