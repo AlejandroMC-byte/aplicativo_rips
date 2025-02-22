@@ -9,6 +9,7 @@ function BuscadorFacturas() {
   const [mensaje, setMensaje] = useState("");
   const [buscandoFacturas, setBuscandoFacturas] = useState(false);
   const [enviandopagina, setEnviandopagina] = useState(false);
+  const [webservices, setWebservices] = useState("fal");
 
   const buscarFacturas = async () => {
     if ((filtros.prefijo && !filtros.factura_fiscal) || (!filtros.prefijo && filtros.factura_fiscal)) {
@@ -16,18 +17,18 @@ function BuscadorFacturas() {
       return;
     }
 
-    if((filtros.prefijo && filtros.fecha_registro) || (filtros.factura_fiscal && filtros.fecha_registro) || (filtros.prefijo && filtros.factura_fiscal && filtros.fecha_registro)){
+    if ((filtros.prefijo && filtros.fecha_registro) || (filtros.factura_fiscal && filtros.fecha_registro) || (filtros.prefijo && filtros.factura_fiscal && filtros.fecha_registro)) {
       toast.error("Si llenas la fecha no llenes el prefijo o factura fiscal", { position: "top-center" });
       return;
     }
 
-    const requestBody = { ...filtros, consultarFacturas: '1' };
+    const requestBody = { ...filtros, consultarFacturas: '1', webservices: webservices };
     const toastId = toast.loading("Buscando facturas...", { position: "top-center" });
 
     try {
       setBuscandoFacturas(true); // Bloquea el buscador
 
-      const response = await fetch(`http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/`, {
+      const response = await fetch(`/api/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -64,11 +65,11 @@ function BuscadorFacturas() {
   };
 
   const enviarRIPSfactura = async (factura) => {
-    const requestBody = { ...factura, envioRips: '1' };
+    const requestBody = { ...factura, envioRips: '1', webservices: webservices };
     const toastId = toast.loading("Enviando RIPS electrónicos...");
 
     try {
-      const response = await fetch(`http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/`, {
+      const response = await fetch(`/api/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -155,6 +156,19 @@ function BuscadorFacturas() {
       <h2 className="mb-3">Buscar Facturas para RIPS electronicos</h2>
       <div className="row">
         <div className="col-md-3">
+          <select className="form-control form-select form-select-lg mb-3" onChange={(e) => setWebservices(e.target.value)}>
+            <option value={"fal"}>
+              FAL
+            </option>
+            <option value={"dime"}>
+              DIME
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div className="row">
+        <div className="col-md-3">
           <input className="form-control" type="text" placeholder="Prefijo" value={filtros.prefijo} onChange={(e) => setFiltros({ ...filtros, prefijo: e.target.value })} />
         </div>
         <div className="col-md-3">
@@ -214,7 +228,7 @@ function BuscadorFacturas() {
                   <td style={{ textAlign: "center" }}>{factura.estado_fac_electronica}</td>
                   <td style={{ textAlign: "center" }}>{factura.estado_rips}</td>
                   <td>
-                    <BotonesJson jsonRespuesta={factura.json_respuesta} prefijo={factura.prefijo} facturaFiscal = {factura.factura_fiscal} />
+                    <BotonesJson jsonRespuesta={factura.json_respuesta} prefijo={factura.prefijo} facturaFiscal={factura.factura_fiscal} />
                   </td>
                   <td>
                     <button
