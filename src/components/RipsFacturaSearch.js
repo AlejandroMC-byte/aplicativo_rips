@@ -157,12 +157,16 @@ function BuscadorFacturas() {
       <div className="row">
         <div className="col-md-3">
           <select className="form-control form-select form-select-lg mb-3" onChange={(e) => setWebservices(e.target.value)}>
-            <option value={"fal"}>
-              FAL
-            </option>
-            <option value={"dime"}>
-              DIME
-            </option>
+            <optgroup label="Conexus" className="fw-bold text-primary">
+              <option value="sigma">SIGMA</option>
+              <option value="dime">DIME</option>
+              <option value="fal">FAL</option>
+              <option value="cya">CYA</option>
+            </optgroup>
+            <optgroup label="Dataico" className="fw-bold text-danger">
+              <option value="posmedica">POSMÉDICA</option>
+              <option value="ucimed">UCIMED</option>
+            </optgroup>
           </select>
         </div>
       </div>
