@@ -9,7 +9,7 @@ function BuscadorFacturas() {
   const [mensaje, setMensaje] = useState("");
   const [buscandoFacturas, setBuscandoFacturas] = useState(false);
   const [enviandopagina, setEnviandopagina] = useState(false);
-  const [webservices, setWebservices] = useState("fal");
+  const [webservices, setWebservices] = useState("sigma");
 
   const buscarFacturas = async () => {
     if ((filtros.prefijo && !filtros.factura_fiscal) || (!filtros.prefijo && filtros.factura_fiscal)) {
