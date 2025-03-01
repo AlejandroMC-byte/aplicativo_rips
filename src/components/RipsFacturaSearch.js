@@ -1,5 +1,6 @@
 import { useState } from "react";
 import BotonesJson from "./BotonesJson";
+import ModalCuentas from "./ModalCuentas";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -10,6 +11,8 @@ function BuscadorFacturas() {
   const [buscandoFacturas, setBuscandoFacturas] = useState(false);
   const [enviandopagina, setEnviandopagina] = useState(false);
   const [webservices, setWebservices] = useState("sigma");
+  const [showModal, setShowModal] = useState(false);
+  const [cuentasModal, setCuentasModal] = useState([]);
 
   const buscarFacturas = async () => {
     if ((filtros.prefijo && !filtros.factura_fiscal) || (!filtros.prefijo && filtros.factura_fiscal)) {
@@ -150,6 +153,15 @@ function BuscadorFacturas() {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(numero);
   };
 
+  const handleShowModal = (cuentas) => {
+    setCuentasModal(cuentas.split(','));
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setCuentasModal([]);
+  };
   return (
     <div className="container mt-4">
       <ToastContainer />
@@ -223,7 +235,15 @@ function BuscadorFacturas() {
                 <tr key={factura.factura_fiscal}>
                   <td style={{ textAlign: "center" }}>{factura.prefijo}</td>
                   <td style={{ textAlign: "center" }}>{factura.factura_fiscal}</td>
-                  <td style={{ textAlign: "center" }}>{factura.numerodecuenta}</td>
+                  <td style={{ textAlign: "center" }}>
+                    {factura.numerodecuenta.split(',').length > 1 ? (
+                      <button className="btn btn-primary" onClick={() => handleShowModal(factura.numerodecuenta)}>
+                        Ver Cuentas
+                      </button>
+                    ) : (
+                      factura.numerodecuenta
+                    )}
+                  </td>
                   <td style={{ textAlign: "center" }}>{factura.estado}</td>
                   <td style={{ textAlign: "center" }}>
                     {formatearComoPesos(factura.total_factura)}
@@ -252,6 +272,7 @@ function BuscadorFacturas() {
           </table>
         </>
       )}
+      <ModalCuentas show={showModal} handleClose={handleCloseModal} cuentas={cuentasModal} />
     </div>
   );
 }
