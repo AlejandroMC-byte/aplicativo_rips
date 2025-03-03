@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BotonesJson from "./BotonesJson";
 import ModalCuentas from "./ModalCuentas";
 import { toast, ToastContainer } from "react-toastify";
@@ -13,6 +13,50 @@ function BuscadorFacturas() {
   const [webservices, setWebservices] = useState("sigma");
   const [showModal, setShowModal] = useState(false);
   const [cuentasModal, setCuentasModal] = useState([]);
+  const [prefijos, setPrefijos] = useState([]);
+  const [terceros, setTerceros] = useState([]);
+
+  useEffect(() => {
+    // Función para obtener prefijos desde la API
+    const obtenerPrefijos = async () => {
+      const requestBody = { consultarPrefijos: '1', webservices: webservices };
+      try {
+        const response = await fetch(`/api/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+        const data = await response.json();
+        setPrefijos(data.prefijos || []);
+      } catch (error) {
+        console.error("Error al obtener prefijos:", error);
+      }
+    };
+
+    // Función para obtener terceros desde la API
+    const obtenerTerceros = async () => {
+      const requestBody = { consultarTerceros: '1', webservices: webservices };
+      try {
+        const response = await fetch(`/api/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+        const data = await response.json();
+        setTerceros(data.terceros || []);
+      } catch (error) {
+        console.error("Error al obtener terceros:", error);
+      }
+    };
+
+    // Llamar a las funciones cuando el componente se monte
+    obtenerPrefijos();
+    obtenerTerceros();
+  }, []);
 
   const buscarFacturas = async () => {
     if ((filtros.prefijo && !filtros.factura_fiscal) || (!filtros.prefijo && filtros.factura_fiscal)) {
@@ -136,6 +180,7 @@ function BuscadorFacturas() {
       setEnviandopagina(false); // Desbloquea el buscador
     }
   };
+
   const limpiarFormulario = () => {
     setFiltros({ prefijo: "", factura_fiscal: "", fecha_registro: "" });
     setMensaje("");
@@ -185,7 +230,12 @@ function BuscadorFacturas() {
 
       <div className="row">
         <div className="col-md-3">
-          <input className="form-control" type="text" placeholder="Prefijo" value={filtros.prefijo} onChange={(e) => setFiltros({ ...filtros, prefijo: e.target.value })} />
+          <select className="form-control" value={filtros.prefijo} onChange={(e) => setFiltros({ ...filtros, prefijo: e.target.value })}>
+            <option value="">Seleccione Prefijo</option>
+            {prefijos.map((prefijo) => (
+              <option key={prefijo} value={prefijo}>{prefijo}</option>
+            ))}
+          </select>
         </div>
         <div className="col-md-3">
           <input className="form-control" type="text" placeholder="Factura Fiscal" value={filtros.factura_fiscal} onChange={(e) => setFiltros({ ...filtros, factura_fiscal: e.target.value })} />
@@ -193,6 +243,17 @@ function BuscadorFacturas() {
         <div className="col-md-3">
           <input className="form-control" type="date" value={filtros.fecha_registro} onChange={(e) => setFiltros({ ...filtros, fecha_registro: e.target.value })} />
         </div>
+        <div className="col-md-3">
+          <select className="form-control" value={filtros.tercero} onChange={(e) => setFiltros({ ...filtros, tercero: e.target.value })}>
+            <option value="">Seleccione Tercero</option>
+            {terceros.map((tercero) => (
+              <option key={tercero} value={tercero}>{tercero}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="row mt-3">
         <div className="col-md-3 d-flex">
           <button className="btn btn-primary me-2" onClick={buscarFacturas} disabled={buscandoFacturas}>
             {buscandoFacturas ? "Buscando..." : "Buscar Facturas"}
