@@ -29,6 +29,7 @@ function BuscadorFacturas() {
           body: JSON.stringify(requestBody)
         });
         const data = await response.json();
+        console.log('prefijos', data);
         setPrefijos(data.prefijos || []);
       } catch (error) {
         console.error("Error al obtener prefijos:", error);
@@ -56,7 +57,7 @@ function BuscadorFacturas() {
     // Llamar a las funciones cuando el componente se monte
     obtenerPrefijos();
     obtenerTerceros();
-  }, []);
+  }, [webservices]);
 
   const buscarFacturas = async () => {
     if ((filtros.prefijo && !filtros.factura_fiscal) || (!filtros.prefijo && filtros.factura_fiscal)) {
@@ -232,9 +233,11 @@ function BuscadorFacturas() {
         <div className="col-md-3">
           <select className="form-control" value={filtros.prefijo} onChange={(e) => setFiltros({ ...filtros, prefijo: e.target.value })}>
             <option value="">Seleccione Prefijo</option>
-            {prefijos.map((prefijo) => (
-              <option key={prefijo} value={prefijo}>{prefijo}</option>
-            ))}
+            {console.log("prefijos:", prefijos)}
+            {
+              prefijos.map((item) => (
+                <option key={item.prefijo} value={item.prefijo}>{item.prefijo}</option>
+              ))}
           </select>
         </div>
         <div className="col-md-3">
@@ -247,7 +250,9 @@ function BuscadorFacturas() {
           <select className="form-control" value={filtros.tercero} onChange={(e) => setFiltros({ ...filtros, tercero: e.target.value })}>
             <option value="">Seleccione Tercero</option>
             {terceros.map((tercero) => (
-              <option key={tercero} value={tercero}>{tercero}</option>
+              <option key={tercero.tercero_id} value={tercero.tercero_id}>
+                {tercero.nombre_tercero}
+              </option>
             ))}
           </select>
         </div>
