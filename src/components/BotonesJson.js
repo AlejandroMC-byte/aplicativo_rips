@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Modal, Button } from "react-bootstrap";
 
-const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal }) => {
+const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal, webservices }) => {
   const [show, setShow] = useState(false);
   const [jsonActual, setJsonActual] = useState(null);
   const [titulo, setTitulo] = useState("");
@@ -13,9 +13,10 @@ const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal }) => {
         const requestBody = {
           consultarJsonRIPSFactura: "1",
           prefijo: prefijo,
-          factura_fiscal: facturaFiscal
+          factura_fiscal: facturaFiscal,
+          webservices: webservices
         };
-        const response = await fetch(`http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/`, {
+        const response = await fetch(`/api/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -46,9 +47,11 @@ const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal }) => {
       const requestBody = {
         consultarJsonRIPSFactura: "1",
         prefijo: prefijo,
-        factura_fiscal: facturaFiscal
+        factura_fiscal: facturaFiscal,
+        webservices: webservices
+
       };
-      const response = await fetch(`http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/`, {
+      const response = await fetch(`/api/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

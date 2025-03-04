@@ -29,7 +29,7 @@ function BuscadorFacturas() {
           body: JSON.stringify(requestBody)
         });
         const data = await response.json();
-        console.log('prefijos', data);
+        // console.log('prefijos', data);
         setPrefijos(data.prefijos || []);
       } catch (error) {
         console.error("Error al obtener prefijos:", error);
@@ -217,7 +217,7 @@ function BuscadorFacturas() {
           <select className="form-control form-select form-select-lg mb-3" onChange={(e) => setWebservices(e.target.value)}>
             <optgroup label="Conexus" className="fw-bold text-primary">
               <option value="sigma">SIGMA</option>
-              <option value="dime">DIME</option>
+              {/* <option value="dime">DIME</option> */}
               <option value="fal">FAL</option>
               <option value="cya">CYA</option>
             </optgroup>
@@ -233,7 +233,6 @@ function BuscadorFacturas() {
         <div className="col-md-3">
           <select className="form-control" value={filtros.prefijo} onChange={(e) => setFiltros({ ...filtros, prefijo: e.target.value })}>
             <option value="">Seleccione Prefijo</option>
-            {console.log("prefijos:", prefijos)}
             {
               prefijos.map((item) => (
                 <option key={item.prefijo} value={item.prefijo}>{item.prefijo}</option>
@@ -250,7 +249,7 @@ function BuscadorFacturas() {
           <select className="form-control" value={filtros.tercero} onChange={(e) => setFiltros({ ...filtros, tercero: e.target.value })}>
             <option value="">Seleccione Tercero</option>
             {terceros.map((tercero) => (
-              <option key={tercero.tercero_id} value={tercero.tercero_id}>
+              <option key={tercero.tercero_id} value={`${tercero.tipo_id_tercero}-${tercero.tercero_id}`}>
                 {tercero.nombre_tercero}
               </option>
             ))}
