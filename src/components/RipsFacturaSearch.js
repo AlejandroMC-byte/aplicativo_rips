@@ -15,13 +15,20 @@ function BuscadorFacturas() {
   const [cuentasModal, setCuentasModal] = useState([]);
   const [prefijos, setPrefijos] = useState([]);
   const [terceros, setTerceros] = useState([]);
-
+  const webservicesArray = {
+    "fal":"https://siis.fundacional.org:8443/SIIS_FAL/webservices/ApiFacturasRipsElectronicos/",
+    "dime":"http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/",
+    "sigma":"https://siis04.simde.com.co/SIIS_SIGMA/webservices/ApiFacturasRipsElectronicos/",
+    "cya": "https://siis05.simde.com.co/SIIS_CYA/webservices/ApiFacturasRipsElectronicos/",
+    "ucimed":"https://siis04.simde.com.co/SIIS_UCIMED/webservices/ApiFacturasRipsElectronicos/",
+    "posmedica": "https://siis04.simde.com.co/SIIS_POSMEDICA/webservices/ApiFacturasRipsElectronicos/"
+  };
   useEffect(() => {
     // Función para obtener prefijos desde la API
     const obtenerPrefijos = async () => {
       const requestBody = { consultarPrefijos: '1', webservices: webservices };
       try {
-        const response = await fetch(`/api/`, {
+        const response = await fetch(webservicesArray[webservices], {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -40,7 +47,7 @@ function BuscadorFacturas() {
     const obtenerTerceros = async () => {
       const requestBody = { consultarTerceros: '1', webservices: webservices };
       try {
-        const response = await fetch(`/api/`, {
+        const response = await fetch(webservicesArray[webservices], {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -76,7 +83,7 @@ function BuscadorFacturas() {
     try {
       setBuscandoFacturas(true); // Bloquea el buscador
 
-      const response = await fetch(`/api/`, {
+      const response = await fetch(webservicesArray[webservices], {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -117,7 +124,7 @@ function BuscadorFacturas() {
     const toastId = toast.loading("Enviando RIPS electrónicos...");
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(webservicesArray[webservices], {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -317,7 +324,7 @@ function BuscadorFacturas() {
                   <td style={{ textAlign: "center" }}>{factura.estado_fac_electronica}</td>
                   <td style={{ textAlign: "center" }}>{factura.estado_rips}</td>
                   <td>
-                    <BotonesJson jsonRespuesta={factura.json_respuesta} prefijo={factura.prefijo} facturaFiscal={factura.factura_fiscal} />
+                    <BotonesJson webservices={webservices} prefijo={factura.prefijo} facturaFiscal={factura.factura_fiscal} />
                   </td>
                   <td>
                     <button
