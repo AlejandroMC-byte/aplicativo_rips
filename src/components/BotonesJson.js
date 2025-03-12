@@ -1,11 +1,20 @@
 import { useState } from "react";
 import { Modal, Button } from "react-bootstrap";
 
-const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal }) => {
+const BotonesJson = ({ prefijo, facturaFiscal, webservices }) => {
   const [show, setShow] = useState(false);
   const [jsonActual, setJsonActual] = useState(null);
   const [titulo, setTitulo] = useState("");
-
+  const [jsonRips, setJsonRips] = useState(null);
+  const [jsonRespuesta, setJsonRespuesta] = useState(null);
+  const webservicesArray = {
+    "fal":"https://siis.fundacional.org:8443/SIIS_FAL/webservices/ApiFacturasRipsElectronicos/",
+    "dime":"http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/",
+    "sigma":"https://siis04.simde.com.co/SIIS_SIGMA/webservices/ApiFacturasRipsElectronicos/",
+    "cya": "https://siis05.simde.com.co/SIIS_CYA/webservices/ApiFacturasRipsElectronicos/",
+    "ucimed":"https://siis04.simde.com.co/SIIS_UCIMED/webservices/ApiFacturasRipsElectronicos/",
+    "posmedica": "https://siis04.simde.com.co/SIIS_POSMEDICA/webservices/ApiFacturasRipsElectronicos/"
+  };
   const handleClose = () => setShow(false);
   const handleShow = async (json, title, isRips) => {
     if (isRips) {
@@ -13,9 +22,10 @@ const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal }) => {
         const requestBody = {
           consultarJsonRIPSFactura: "1",
           prefijo: prefijo,
-          factura_fiscal: facturaFiscal
+          factura_fiscal: facturaFiscal,
+          webservices: webservices
         };
-        const response = await fetch(`http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/`, {
+        const response = await fetch(webservicesArray[webservices], {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -23,11 +33,13 @@ const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal }) => {
           body: JSON.stringify(requestBody)
         });
         const data = await response.json();
-        // console.log(data);
-        setJsonActual(typeof data === "string" ? JSON.parse(data) : data);
+        // console.log(data.json_rips);
+        setJsonRips(typeof data.json_rips === "string" ? JSON.parse(data.json_rips) : data.json_rips);
+        setJsonRespuesta(typeof data.json_respuesta === "string" ? JSON.parse(data.json_respuesta) : data.json_respuesta);
       } catch (e) {
         console.error("Error al obtener JSON RIPS:", e);
-        setJsonActual({ error: "Error al obtener JSON RIPS" });
+        setJsonRips({ error: "Error al obtener JSON RIPS" });
+        setJsonRespuesta({ error: "Error al obtener JSON Respuesta" });
       }
     } else {
       try {
@@ -46,9 +58,11 @@ const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal }) => {
       const requestBody = {
         consultarJsonRIPSFactura: "1",
         prefijo: prefijo,
-        factura_fiscal: facturaFiscal
+        factura_fiscal: facturaFiscal,
+        webservices: webservices
+
       };
-      const response = await fetch(`http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/`, {
+      const response = await fetch(webservicesArray[webservices], {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -56,8 +70,9 @@ const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal }) => {
         body: JSON.stringify(requestBody)
       });
       let data = await response.json();
-      data = typeof data === "string" ? JSON.parse(data) : data;
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      // console.log(data)
+      data.json_rips = typeof data.json_rips === "string" ? JSON.parse(data.json_rips) : data.json_rips;
+      const blob = new Blob([JSON.stringify(data.json_rips, null, 2)], { type: "application/json" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.download = `rips${prefijo}-${facturaFiscal}.json`;
@@ -72,7 +87,7 @@ const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal }) => {
   return (
     <>
       <div className="d-flex flex-wrap gap-2">
-        <Button variant="secondary" size="sm" onClick={() => handleShow(jsonRespuesta, "JSON Respuesta", false)}>
+        <Button variant="secondary" size="sm" onClick={() => handleShow(null, "JSON Respuesta", true)}>
           Ver JSON Respuesta
         </Button>
         <Button variant="secondary" size="sm" onClick={() => handleShow(null, "JSON RIPS", true)}>
@@ -89,7 +104,7 @@ const BotonesJson = ({ jsonRespuesta, prefijo, facturaFiscal }) => {
         </Modal.Header>
         <Modal.Body>
           <pre className="bg-light p-3">
-            {jsonActual ? JSON.stringify(jsonActual, null, 2) : "Cargando..."}
+            {titulo === "JSON RIPS" ? (jsonRips ? JSON.stringify(jsonRips, null, 2) : "Cargando...") : (jsonRespuesta ? JSON.stringify(jsonRespuesta, null, 2) : "Cargando...")}
           </pre>
         </Modal.Body>
         <Modal.Footer>
