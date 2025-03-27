@@ -3,6 +3,17 @@
   color: #ffffff;
 }
 
+.menu-button {
+  background-color: #0c5383;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.menu-button.d-none {
+  display: none; /* Ocultar el botón cuando el Sidebar está visible */
+}
+
 .header-custom .nav-link {
   color: #ffffff;
 }
@@ -12,4 +23,15 @@
 
 .header-custom .nav-link:hover {
   color: #dcdcdc;
+}
+.navbar-brand {
+  transition: margin-left 0.3s ease;
+}
+
+.ms-auto {
+  margin-left: auto !important;
+}
+
+.ms-0 {
+  margin-left: 0 !important;
 }

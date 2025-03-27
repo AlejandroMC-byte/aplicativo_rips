@@ -2,12 +2,22 @@ import { Link } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./Styles/Header.css"; // Importa el archivo CSS personalizado
 
-const Header = () => {
+const Header = ({ toggleSidebar, sidebarVisible }) => {
   return (
     <nav className="navbar navbar-expand-lg header-custom">
-      <div className="container">
-        <Link className="navbar-brand fw-bold" to="/rips-factura">
-          Buscador de Facturas
+      <div className="container d-flex align-items-center">
+        {/* Ocultar el botón cuando el Sidebar está visible */}
+        <button
+          className={`btn btn-primary me-3 menu-button ${sidebarVisible ? "d-none" : ""}`}
+          onClick={toggleSidebar}
+        >
+          ☰
+        </button>
+        <Link
+          className={`navbar-brand fw-bold ${sidebarVisible ? "ms-0" : "ms-auto"}`}
+          to="/rips-factura"
+        >
+          Buscador de Documentos
         </Link>
         <div className="collapse navbar-collapse">
           <ul className="navbar-nav ms-auto">

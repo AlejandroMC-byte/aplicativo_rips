@@ -1,7 +1,7 @@
 .sidebar-custom {
+  width: 250px;
   background-color: #0c5383;
   color: #ffffff;
-  width: 250px;
 }
 
 .sidebar-custom .nav-link {
@@ -9,5 +9,17 @@
 }
 
 .sidebar-custom .nav-link:hover {
+  color: #dcdcdc;
+}
+
+.sidebar-custom button {
+  background-color: transparent;
+  border: none;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.sidebar-custom button:hover {
   color: #dcdcdc;
 }
