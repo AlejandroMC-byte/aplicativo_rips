@@ -10,36 +10,40 @@ function BuscadorFacturas() {
   const [mensaje, setMensaje] = useState("");
   const [buscandoFacturas, setBuscandoFacturas] = useState(false);
   const [enviandopagina, setEnviandopagina] = useState(false);
-  const [webservices, setWebservices] = useState("sigma");
+  const [webservices, setWebservices] = useState("SIIS_SIGMA");
   const [showModal, setShowModal] = useState(false);
   const [cuentasModal, setCuentasModal] = useState([]);
   const [prefijos, setPrefijos] = useState([]);
   const [terceros, setTerceros] = useState([]);
   const webservicesArray = {
-    "fal":"https://siis.fundacional.org:8443/SIIS_FAL/webservices/ApiFacturasRipsElectronicos/",
-    "dime":"http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/",
-    "sigma":"https://siis04.simde.com.co/SIIS_SIGMA/webservices/ApiFacturasRipsElectronicos/",
-    "cya": "https://siis05.simde.com.co/SIIS_CYA/webservices/ApiFacturasRipsElectronicos/",
-    "ucimed":"https://siis04.simde.com.co/SIIS_UCIMED/webservices/ApiFacturasRipsElectronicos/",
-    "posmedica": "https://siis04.simde.com.co/SIIS_POSMEDICA/webservices/ApiFacturasRipsElectronicos/"
+    "SIIS_FAL": "https://siis.fundacional.org:8443/SIIS_FAL/webservices/ApiFacturasRipsElectronicos/",
+    "SIIS_DIME": "http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/",
+    "SIIS_SIGMA": "https://siis04.simde.com.co/SIIS_SIGMA/webservices/ApiFacturasRipsElectronicos/",
+    "SIIS_CYA": "https://siis05.simde.com.co/SIIS_CYA/webservices/ApiFacturasRipsElectronicos/",
+    "SIIS_UCIMED": "https://siis04.simde.com.co/SIIS_UCIMED/webservices/ApiFacturasRipsElectronicos/",
+    "SIIS_POSMEDICA": "https://siis04.simde.com.co/SIIS_POSMEDICA/webservices/ApiFacturasRipsElectronicos/"
   };
-  const webserviceURL = "https://devel82els.simde.com.co/facturacionElectronica/public/api/obtenerFacturas/";
+  const webserviceURL = "https://devel82els.simde.com.co/facturacionElectronica/public/api/obtenerFacturas";
   const buscarFacturas = async () => {
     const requestBody = {
-      webservices: "obtenerFacturas",
-      proyecto: "SIIS_SIGMA"
+      ...filtros, proyecto: webservices
     }; // JSON de envío según la imagen
     const toastId = toast.loading("Buscando facturas del día...", { position: "top-center" });
     try {
       setBuscandoFacturas(true); // Bloquea el buscador
-      const response = await fetch("http://localhost:4000/api/", {
+      const response = await fetch(webserviceURL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
+        redirect: "manual",
         body: JSON.stringify(requestBody)
-    });
+      });
 
+      if (response.status === 301 || response.status === 302) {
+        throw new Error("Redirección detectada. Verifica la URL del endpoint.");
+      }
+      
       const data = await response.json();
 
       // Actualiza las facturas y el mensaje
@@ -65,43 +69,42 @@ function BuscadorFacturas() {
       setBuscandoFacturas(false); // Desbloquea el buscador
     }
   };
-  useEffect(() => {
-    // Función para obtener prefijos desde la API
-    const obtenerPrefijos = async () => {
-      const requestBody = { consultarPrefijos: '1', webservices: webservices };
-      try {
-        const response = await fetch(webservicesArray[webservices], {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestBody)
-        });
-        const data = await response.json();
-        // console.log('prefijos', data);
-        setPrefijos(data.prefijos || []);
-      } catch (error) {
-        console.error("Error al obtener prefijos:", error);
-      }
-    };
+  const obtenerPrefijos = async () => {
+    const requestBody = { consultarPrefijos: '1', webservices: webservices };
+    try {
+      const response = await fetch(webservicesArray[webservices], {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+      const data = await response.json();
+      // console.log('prefijos', data);
+      setPrefijos(data.prefijos || []);
+    } catch (error) {
+      console.error("Error al obtener prefijos:", error);
+    }
+  };
 
-    // Función para obtener terceros desde la API
-    const obtenerTerceros = async () => {
-      const requestBody = { consultarTerceros: '1', webservices: webservices };
-      try {
-        const response = await fetch(webservicesArray[webservices], {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestBody)
-        });
-        const data = await response.json();
-        setTerceros(data.terceros || []);
-      } catch (error) {
-        console.error("Error al obtener terceros:", error);
-      }
-    };
+  // Función para obtener terceros desde la API
+  const obtenerTerceros = async () => {
+    const requestBody = { consultarTerceros: '1', webservices: webservices };
+    try {
+      const response = await fetch(webservicesArray[webservices], {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+      const data = await response.json();
+      setTerceros(data.terceros || []);
+    } catch (error) {
+      console.error("Error al obtener terceros:", error);
+    }
+  };
+  useEffect(() => {
     buscarFacturas()
     // Llamar a las funciones cuando el componente se monte
     obtenerPrefijos();
@@ -205,22 +208,61 @@ function BuscadorFacturas() {
     setShowModal(false);
     setCuentasModal([]);
   };
+
+  const ejecutarLink = async (factura) => {
+    const { prefijo, factura_fiscal, periodo, nit, estado_fac_electronica } = factura;
+  
+    // Verifica si el estado es "VALIDADA DIAN" o "PENDIENTE VALIDACION DIAN"
+    if (estado_fac_electronica === "VALIDADA DIAN" || estado_fac_electronica === "PENDIENTE VALIDACION DIAN") {
+      const url = `https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarFacturaConexus?prefijo=${prefijo}&numero=${factura_fiscal}&periodo=${periodo}&nit=${nit}`;
+      
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        console.log(data);
+  
+        // Verifica si el resultado contiene el campo PDFBase64
+        if (data.GetTransaccionbyIdentificacionResult && data.GetTransaccionbyIdentificacionResult.PDFBase64) {
+          const pdfBase64 = data.GetTransaccionbyIdentificacionResult.PDFBase64;
+  
+          // Decodifica el contenido Base64 y crea un Blob para el PDF
+          const byteCharacters = atob(pdfBase64);
+          const byteNumbers = new Array(byteCharacters.length).fill().map((_, i) => byteCharacters.charCodeAt(i));
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: "application/pdf" });
+  
+          // Crea una URL para el Blob y ábrelo en una nueva ventana
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, "_blank");
+        } else {
+          toast.error("No se pudo obtener el PDF de la transacción.");
+        }
+      } catch (error) {
+        console.error("Error al obtener el PDF:", error);
+        toast.error("Error al conectar con el servidor.");
+      }
+    }
+  };
   return (
     <div className="container mt-4">
       <ToastContainer />
-      <h2 className="mb-3">Buscar Facturas electronicos</h2>
+      <h2 className="mb-3">Buscar Facturas electronicas</h2>
       <div className="row">
         <div className="col-md-3">
           <select className="form-control form-select form-select-lg mb-3" onChange={(e) => setWebservices(e.target.value)}>
             <optgroup label="Conexus" className="fw-bold text-primary">
-              <option value="sigma">SIGMA</option>
-              {/* <option value="dime">DIME</option> */}
-              <option value="fal">FAL</option>
-              <option value="cya">CYA</option>
+              <option value="SIIS_SIGMA">SIGMA</option>
+              <option value="SIIS_INDIGO">INDIGO</option>
+              <option value="SIIS_OFTAPALMIRA">OFTA PALMIRA</option>
+              <option value="SIIS_OFTACARTAGO">OFTA CARTAGO</option>
+              <option value="SIIS_PINARES">PINARES</option>
+              {/* <option value="SIIS_CEO">CEO</option> */}
+              <option value="SIIS_FAL">FAL</option>
+              <option value="SIIS_CYA">CYA</option>
             </optgroup>
             <optgroup label="Dataico" className="fw-bold text-danger">
-              <option value="posmedica">POSMÉDICA</option>
-              <option value="ucimed">UCIMED</option>
+              <option value="SIIS_POSMEDICA">POSMÉDICA</option>
+              <option value="SIIS_UCIMED">UCIMED</option>
             </optgroup>
           </select>
         </div>
@@ -228,6 +270,7 @@ function BuscadorFacturas() {
 
       <div className="row">
         <div className="col-md-3">
+          <label className="form-label"></label>
           <select className="form-control" value={filtros.prefijo} onChange={(e) => setFiltros({ ...filtros, prefijo: e.target.value })}>
             <option value="">Seleccione Prefijo</option>
             {
@@ -237,10 +280,16 @@ function BuscadorFacturas() {
           </select>
         </div>
         <div className="col-md-3">
+          <label className="form-label"></label>
           <input className="form-control" type="text" placeholder="Factura Fiscal" value={filtros.factura_fiscal} onChange={(e) => setFiltros({ ...filtros, factura_fiscal: e.target.value })} />
         </div>
         <div className="col-md-3">
-          <input className="form-control" type="date" value={filtros.fecha_registro} onChange={(e) => setFiltros({ ...filtros, fecha_registro: e.target.value })} />
+          <label className="form-label">Fecha Inicio</label>
+          <input className="form-control" type="date" value={filtros.fecha_inicio} onChange={(e) => setFiltros({ ...filtros, fecha_inicio: e.target.value })} />
+        </div>
+        <div className="col-md-3">
+          <label className="form-label">Fecha Fin</label>
+          <input className="form-control" type="date" value={filtros.fecha_fin} onChange={(e) => setFiltros({ ...filtros, fecha_registro: e.target.value })} />
         </div>
         <div className="col-md-3">
           <select className="form-control" value={filtros.tercero} onChange={(e) => setFiltros({ ...filtros, tercero: e.target.value })}>
@@ -250,6 +299,14 @@ function BuscadorFacturas() {
                 {tercero.nombre_tercero}
               </option>
             ))}
+          </select>
+        </div>
+        <div className="col-md-3">
+          <select className="form-control" value={filtros.estado_dian} onChange={(e) => setFiltros({...filtros,estado_dian: e.target.value})}>
+              <option value="0">ERROR</option>
+              <option value="1">VALIDADO DIAN</option>
+              <option value="2">PENDIENTE VALIDACION DIAN</option>
+              <option value="3">SIN ENVIAR</option>
           </select>
         </div>
       </div>
@@ -273,7 +330,7 @@ function BuscadorFacturas() {
       {facturas.length > 0 && (
         <>
           {/* <div className="col-md-3"> */}
-            {/* <button className="btn btn-primary" onClick={envioFacturasPagina} disabled={enviandopagina}>
+          {/* <button className="btn btn-primary" onClick={envioFacturasPagina} disabled={enviandopagina}>
               {enviandopagina ? "Enviando Facturas pagina..." : "Enviar facturas del dia"}
             </button> */}
           {/* </div> */}
@@ -284,7 +341,7 @@ function BuscadorFacturas() {
                 <th style={{ textAlign: "center" }}>Factura Fiscal</th>
                 <th style={{ textAlign: "center" }}>Cuenta</th>
                 <th style={{ textAlign: "center" }}>Fecha registro</th>
-                <th style={{ textAlign: "center" }}>estado factura</th>
+                <th style={{ textAlign: "center" }}>estado factura electronica</th>
               </tr>
             </thead>
             <tbody>
@@ -302,7 +359,18 @@ function BuscadorFacturas() {
                     )}
                   </td>
                   <td style={{ textAlign: "center" }}>{factura.fecha_registro}</td>
-                  <td style={{ textAlign: "center" }}>{factura.estado}</td>
+                  <td style={{ textAlign: "center" }}>
+                    <button
+                      className="btn btn-link"
+                      onClick={() => ejecutarLink(factura)}
+                      disabled={
+                        factura.estado_fac_electronica !== "VALIDADA DIAN" &&
+                        factura.estado_fac_electronica !== "PENDIENTE VALIDACION DIAN"
+                      }
+                    >
+                      {factura.estado_fac_electronica}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
