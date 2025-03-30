@@ -3,7 +3,7 @@ import BotonesJson from "../BotonesJson";
 import ModalCuentas from "../ModalCuentas";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-
+import './Styles/FacturaSearch.css';
 function BuscadorFacturas() {
   const [facturas, setFacturas] = useState([]);
   const [filtros, setFiltros] = useState({ prefijo: "", factura_fiscal: "", fecha_registro: "" });
@@ -15,15 +15,9 @@ function BuscadorFacturas() {
   const [cuentasModal, setCuentasModal] = useState([]);
   const [prefijos, setPrefijos] = useState([]);
   const [terceros, setTerceros] = useState([]);
-  const webservicesArray = {
-    "SIIS_FAL": "https://siis.fundacional.org:8443/SIIS_FAL/webservices/ApiFacturasRipsElectronicos/",
-    "SIIS_DIME": "http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/",
-    "SIIS_SIGMA": "https://siis04.simde.com.co/SIIS_SIGMA/webservices/ApiFacturasRipsElectronicos/",
-    "SIIS_CYA": "https://siis05.simde.com.co/SIIS_CYA/webservices/ApiFacturasRipsElectronicos/",
-    "SIIS_UCIMED": "https://siis04.simde.com.co/SIIS_UCIMED/webservices/ApiFacturasRipsElectronicos/",
-    "SIIS_POSMEDICA": "https://siis04.simde.com.co/SIIS_POSMEDICA/webservices/ApiFacturasRipsElectronicos/"
-  };
-  const webserviceURL = "https://devel82els.simde.com.co/facturacionElectronica/public/api/obtenerFacturas";
+  const obtenerFacturas = "https://devel82els.simde.com.co/facturacionElectronica/public/api/obtenerFacturas";
+  const consultarPrefijosFacturacion = "https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarPrefijosFacturacion";
+  const consultarTercerosPlanes = "https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarTercerosPlanes";
   const buscarFacturas = async () => {
     const requestBody = {
       ...filtros, proyecto: webservices
@@ -31,7 +25,7 @@ function BuscadorFacturas() {
     const toastId = toast.loading("Buscando facturas del día...", { position: "top-center" });
     try {
       setBuscandoFacturas(true); // Bloquea el buscador
-      const response = await fetch(webserviceURL, {
+      const response = await fetch(obtenerFacturas, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -43,7 +37,7 @@ function BuscadorFacturas() {
       if (response.status === 301 || response.status === 302) {
         throw new Error("Redirección detectada. Verifica la URL del endpoint.");
       }
-      
+
       const data = await response.json();
 
       // Actualiza las facturas y el mensaje
@@ -70,18 +64,19 @@ function BuscadorFacturas() {
     }
   };
   const obtenerPrefijos = async () => {
-    const requestBody = { consultarPrefijos: '1', webservices: webservices };
+    const requestBody = { proyecto: webservices };
     try {
-      const response = await fetch(webservicesArray[webservices], {
+      const response = await fetch(consultarPrefijosFacturacion, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
+        redirect: "manual",
         body: JSON.stringify(requestBody)
       });
       const data = await response.json();
       // console.log('prefijos', data);
-      setPrefijos(data.prefijos || []);
+      setPrefijos(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error al obtener prefijos:", error);
     }
@@ -89,17 +84,18 @@ function BuscadorFacturas() {
 
   // Función para obtener terceros desde la API
   const obtenerTerceros = async () => {
-    const requestBody = { consultarTerceros: '1', webservices: webservices };
+    const requestBody = { proyecto: webservices };
     try {
-      const response = await fetch(webservicesArray[webservices], {
+      const response = await fetch(consultarTercerosPlanes, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
+        redirect: "manual",
         body: JSON.stringify(requestBody)
       });
       const data = await response.json();
-      setTerceros(data.terceros || []);
+      setTerceros(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error al obtener terceros:", error);
     }
@@ -109,7 +105,7 @@ function BuscadorFacturas() {
     // Llamar a las funciones cuando el componente se monte
     obtenerPrefijos();
     obtenerTerceros();
-  }, [webservices]);
+  }, []);
 
 
   // const enviarRIPSfactura = async (factura) => {
@@ -211,26 +207,39 @@ function BuscadorFacturas() {
 
   const ejecutarLink = async (factura) => {
     const { prefijo, factura_fiscal, periodo, nit, estado_fac_electronica } = factura;
-  
+    const requestBody = {
+      prefijo: prefijo,
+      numero: factura_fiscal,
+      periodo: periodo,
+      nit: nit,
+      proyecto: webservices
+    };
     // Verifica si el estado es "VALIDADA DIAN" o "PENDIENTE VALIDACION DIAN"
     if (estado_fac_electronica === "VALIDADA DIAN" || estado_fac_electronica === "PENDIENTE VALIDACION DIAN") {
       const url = `https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarFacturaConexus?prefijo=${prefijo}&numero=${factura_fiscal}&periodo=${periodo}&nit=${nit}`;
-      
+
       try {
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          redirect: "manual",
+          body: JSON.stringify(requestBody)
+        });
         const data = await response.json();
         console.log(data);
-  
+
         // Verifica si el resultado contiene el campo PDFBase64
         if (data.GetTransaccionbyIdentificacionResult && data.GetTransaccionbyIdentificacionResult.PDFBase64) {
           const pdfBase64 = data.GetTransaccionbyIdentificacionResult.PDFBase64;
-  
+
           // Decodifica el contenido Base64 y crea un Blob para el PDF
           const byteCharacters = atob(pdfBase64);
           const byteNumbers = new Array(byteCharacters.length).fill().map((_, i) => byteCharacters.charCodeAt(i));
           const byteArray = new Uint8Array(byteNumbers);
           const blob = new Blob([byteArray], { type: "application/pdf" });
-  
+
           // Crea una URL para el Blob y ábrelo en una nueva ventana
           const blobUrl = URL.createObjectURL(blob);
           window.open(blobUrl, "_blank");
@@ -302,11 +311,11 @@ function BuscadorFacturas() {
           </select>
         </div>
         <div className="col-md-3">
-          <select className="form-control" value={filtros.estado_dian} onChange={(e) => setFiltros({...filtros,estado_dian: e.target.value})}>
-              <option value="0">ERROR</option>
-              <option value="1">VALIDADO DIAN</option>
-              <option value="2">PENDIENTE VALIDACION DIAN</option>
-              <option value="3">SIN ENVIAR</option>
+          <select className="form-control" value={filtros.estado_dian} onChange={(e) => setFiltros({ ...filtros, estado_dian: e.target.value })}>
+            <option value="0">ERROR</option>
+            <option value="1">VALIDADO DIAN</option>
+            <option value="2">PENDIENTE VALIDACION DIAN</option>
+            <option value="3">SIN ENVIAR</option>
           </select>
         </div>
       </div>
@@ -361,7 +370,12 @@ function BuscadorFacturas() {
                   <td style={{ textAlign: "center" }}>{factura.fecha_registro}</td>
                   <td style={{ textAlign: "center" }}>
                     <button
-                      className="btn btn-link"
+                      className={`btn estado-factura ${factura.estado_fac_electronica === "VALIDADA DIAN"
+                          ? "validada"
+                          : factura.estado_fac_electronica === "PENDIENTE VALIDACION DIAN"
+                            ? "pendiente"
+                            : "error"
+                        }`}
                       onClick={() => ejecutarLink(factura)}
                       disabled={
                         factura.estado_fac_electronica !== "VALIDADA DIAN" &&

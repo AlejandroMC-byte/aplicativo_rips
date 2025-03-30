@@ -1,0 +1,25 @@
+/* Estilo base para el botón */
+.estado-factura {
+  border-radius: 15px; /* Bordes redondeados */
+  border: none; /* Sin borde */
+  padding: 5px 10px; /* Espaciado interno */
+  color: white; /* Texto blanco */
+  text-decoration: none; /* Sin subrayado */
+  font-weight: bold; /* Texto en negrita */
+  cursor: pointer; /* Cambia el cursor al pasar por encima */
+}
+
+/* Estilo para el estado "VALIDADA DIAN" */
+.estado-factura.validada {
+  background-color: #5cc663; /* Color verde */
+}
+
+/* Estilo para el estado "PENDIENTE VALIDACION DIAN" */
+.estado-factura.pendiente {
+  background-color: #fb9144; /* Color naranja */
+}
+
+/* Estilo para el estado "ERROR" */
+.estado-factura.error {
+  background-color: #ca1515; /* Color rojo */
+}
