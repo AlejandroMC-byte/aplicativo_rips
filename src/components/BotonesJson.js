@@ -8,24 +8,24 @@ const BotonesJson = ({ prefijo, facturaFiscal, webservices }) => {
   const [jsonRips, setJsonRips] = useState(null);
   const [jsonRespuesta, setJsonRespuesta] = useState(null);
   const webservicesArray = {
-    "fal":"https://siis.fundacional.org:8443/SIIS_FAL/webservices/ApiFacturasRipsElectronicos/",
-    "dime":"http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/",
-    "sigma":"https://siis04.simde.com.co/SIIS_SIGMA/webservices/ApiFacturasRipsElectronicos/",
+    "fal": "https://siis.fundacional.org:8443/SIIS_FAL/webservices/ApiFacturasRipsElectronicos/",
+    "dime": "http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/",
+    "sigma": "https://siis04.simde.com.co/SIIS_SIGMA/webservices/ApiFacturasRipsElectronicos/",
     "cya": "https://siis05.simde.com.co/SIIS_CYA/webservices/ApiFacturasRipsElectronicos/",
-    "ucimed":"https://siis04.simde.com.co/SIIS_UCIMED/webservices/ApiFacturasRipsElectronicos/",
+    "ucimed": "https://siis04.simde.com.co/SIIS_UCIMED/webservices/ApiFacturasRipsElectronicos/",
     "posmedica": "https://siis04.simde.com.co/SIIS_POSMEDICA/webservices/ApiFacturasRipsElectronicos/"
   };
+  const consultarJsonRips = "https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarJsonRips";
   const handleClose = () => setShow(false);
   const handleShow = async (json, title, isRips) => {
     if (isRips) {
       try {
         const requestBody = {
-          consultarJsonRIPSFactura: "1",
           prefijo: prefijo,
           factura_fiscal: facturaFiscal,
-          webservices: webservices
+          proyecto: webservices
         };
-        const response = await fetch(webservicesArray[webservices], {
+        const response = await fetch(consultarJsonRips, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -33,9 +33,17 @@ const BotonesJson = ({ prefijo, facturaFiscal, webservices }) => {
           body: JSON.stringify(requestBody)
         });
         const data = await response.json();
-        // console.log(data.json_rips);
-        setJsonRips(typeof data.json_rips === "string" ? JSON.parse(data.json_rips) : data.json_rips);
-        setJsonRespuesta(typeof data.json_respuesta === "string" ? JSON.parse(data.json_respuesta) : data.json_respuesta);
+
+        // Manejar la nueva estructura de la respuesta
+        if (Array.isArray(data) && data.length > 0) {
+          const firstItem = data[0]; // Accede al primer elemento del array
+          setJsonRips(typeof firstItem.json_rips === "string" ? JSON.parse(firstItem.json_rips) : firstItem.json_rips);
+          setJsonRespuesta(typeof firstItem.json_respuesta === "string" ? JSON.parse(firstItem.json_respuesta) : firstItem.json_respuesta);
+        } else {
+          console.error("La respuesta no contiene datos válidos.");
+          setJsonRips({ error: "La respuesta no contiene datos válidos." });
+          setJsonRespuesta({ error: "La respuesta no contiene datos válidos." });
+        }
       } catch (e) {
         console.error("Error al obtener JSON RIPS:", e);
         setJsonRips({ error: "Error al obtener JSON RIPS" });
@@ -56,29 +64,35 @@ const BotonesJson = ({ prefijo, facturaFiscal, webservices }) => {
   const descargarJSON = async () => {
     try {
       const requestBody = {
-        consultarJsonRIPSFactura: "1",
         prefijo: prefijo,
         factura_fiscal: facturaFiscal,
-        webservices: webservices
-
+        proyecto: webservices
       };
-      const response = await fetch(webservicesArray[webservices], {
+      const response = await fetch(consultarJsonRips, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestBody)
       });
-      let data = await response.json();
-      // console.log(data)
-      data.json_rips = typeof data.json_rips === "string" ? JSON.parse(data.json_rips) : data.json_rips;
-      const blob = new Blob([JSON.stringify(data.json_rips, null, 2)], { type: "application/json" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `rips${prefijo}-${facturaFiscal}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const data = await response.json();
+
+      // Manejar la nueva estructura de la respuesta
+      if (Array.isArray(data) && data.length > 0) {
+        const firstItem = data[0]; // Accede al primer elemento del array
+        const jsonRips = typeof firstItem.json_rips === "string" ? JSON.parse(firstItem.json_rips) : firstItem.json_rips;
+
+        // Crear y descargar el archivo JSON
+        const blob = new Blob([JSON.stringify(jsonRips, null, 2)], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `rips${prefijo}-${facturaFiscal}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        console.error("La respuesta no contiene datos válidos.");
+      }
     } catch (e) {
       console.error("Error al descargar JSON RIPS:", e);
     }

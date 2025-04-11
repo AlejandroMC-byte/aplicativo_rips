@@ -23,3 +23,7 @@
 .estado-factura.error {
   background-color: #ca1515; /* Color rojo */
 }
+/* Estilo para el estado "ERROR" */
+.estado-factura.sin-enviar {
+  background-color: #5f4343; /* Color rojo */
+}

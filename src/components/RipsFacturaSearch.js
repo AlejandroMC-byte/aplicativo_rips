@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import BotonesJson from "./BotonesJson";
 import ModalCuentas from "./ModalCuentas";
 import { toast, ToastContainer } from "react-toastify";
@@ -10,153 +10,142 @@ function BuscadorFacturas() {
   const [mensaje, setMensaje] = useState("");
   const [buscandoFacturas, setBuscandoFacturas] = useState(false);
   const [enviandopagina, setEnviandopagina] = useState(false);
-  const [webservices, setWebservices] = useState("sigma");
+  const [webservices, setWebservices] = useState("SIIS_SIGMA");
   const [showModal, setShowModal] = useState(false);
   const [cuentasModal, setCuentasModal] = useState([]);
   const [prefijos, setPrefijos] = useState([]);
   const [terceros, setTerceros] = useState([]);
-  const webservicesArray = {
-    "fal":"https://siis.fundacional.org:8443/SIIS_FAL/webservices/ApiFacturasRipsElectronicos/",
-    "dime":"http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/",
-    "sigma":"https://siis04.simde.com.co/SIIS_SIGMA/webservices/ApiFacturasRipsElectronicos/",
-    "cya": "https://siis05.simde.com.co/SIIS_CYA/webservices/ApiFacturasRipsElectronicos/",
-    "ucimed":"https://siis04.simde.com.co/SIIS_UCIMED/webservices/ApiFacturasRipsElectronicos/",
-    "posmedica": "https://siis04.simde.com.co/SIIS_POSMEDICA/webservices/ApiFacturasRipsElectronicos/"
-  };
-  useEffect(() => {
-    // Función para obtener prefijos desde la API
-    const obtenerPrefijos = async () => {
-      const requestBody = { consultarPrefijos: '1', webservices: webservices };
-      try {
-        const response = await fetch(webservicesArray[webservices], {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestBody)
-        });
-        const data = await response.json();
-        // console.log('prefijos', data);
-        setPrefijos(data.prefijos || []);
-      } catch (error) {
-        console.error("Error al obtener prefijos:", error);
-      }
-    };
-
-    // Función para obtener terceros desde la API
-    const obtenerTerceros = async () => {
-      const requestBody = { consultarTerceros: '1', webservices: webservices };
-      try {
-        const response = await fetch(webservicesArray[webservices], {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestBody)
-        });
-        const data = await response.json();
-        setTerceros(data.terceros || []);
-      } catch (error) {
-        console.error("Error al obtener terceros:", error);
-      }
-    };
-
-    // Llamar a las funciones cuando el componente se monte
-    obtenerPrefijos();
-    obtenerTerceros();
-  }, [webservices]);
-
-  const buscarFacturas = async () => {
-    if ((filtros.prefijo && !filtros.factura_fiscal) || (!filtros.prefijo && filtros.factura_fiscal)) {
-      toast.error("Debe llenar ambos campos: Prefijo y Factura Fiscal", { position: "top-center" });
-      return;
-    }
-
-    if ((filtros.prefijo && filtros.fecha_registro) || (filtros.factura_fiscal && filtros.fecha_registro) || (filtros.prefijo && filtros.factura_fiscal && filtros.fecha_registro)) {
-      toast.error("Si llenas la fecha no llenes el prefijo o factura fiscal", { position: "top-center" });
-      return;
-    }
-
-    const requestBody = { ...filtros, consultarFacturas: '1', webservices: webservices };
-    const toastId = toast.loading("Buscando facturas...", { position: "top-center" });
-
+  // const webservicesArray = {
+  //   "SIIS_FAL": "https://siis.fundacional.org:8443/SIIS_FAL/webservices/ApiFacturasRipsElectronicos/",
+  //   "SIIS_DIME": "http://172.16.0.117/SIIS_DIME/webservices/ApiFacturasRipsElectronicos/",
+  //   "SIIS_SIGMA": "https://siis04.simde.com.co/SIIS_SIGMA/webservices/ApiFacturasRipsElectronicos/",
+  //   "SIIS_CYA": "https://siis05.simde.com.co/SIIS_CYA/webservices/ApiFacturasRipsElectronicos/",
+  //   "SIIS_UCIMED": "https://siis04.simde.com.co/SIIS_UCIMED/webservices/ApiFacturasRipsElectronicos/",
+  //   "SIIS_POSMEDICA": "https://siis04.simde.com.co/SIIS_POSMEDICA/webservices/ApiFacturasRipsElectronicos/"
+  // };
+  const enviarRips = "https://devel82els.simde.com.co/facturacionElectronica/public/api/enviarRips";
+  const consultarPrefijosFacturacion = "https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarPrefijosFacturacion";
+  const consultarTercerosPlanes = "https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarTercerosPlanes";
+  const obtenerFacturasRips = "https://devel82els.simde.com.co/facturacionElectronica/public/api/obtenerFacturasRips";
+  const buscarFacturas = useCallback(async () => {
+    const requestBody = { ...filtros, consultarFacturas: '1', proyecto: webservices };
     try {
-      setBuscandoFacturas(true); // Bloquea el buscador
-
-      const response = await fetch(webservicesArray[webservices], {
+      setBuscandoFacturas(true);
+      const response = await fetch(obtenerFacturasRips, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
+        redirect: "manual",
         body: JSON.stringify(requestBody)
       });
-
       const data = await response.json();
-      // console.log("Response Data:", data); // Depuración
-
-      setFacturas(Array.isArray(data.facturas) ? data.facturas : []);
-      setMensaje(data.message || "");
-
-      const esError = data.message?.includes("error") || !data.facturas?.length;
-
-      toast.update(toastId, {
-        render: data.message || "Facturas cargadas correctamente",
-        type: esError ? "error" : "success",
-        isLoading: false,
-        autoClose: 2000
-      });
-
+      // Actualiza las facturas y el mensaje
+      setFacturas(Array.isArray(data) ? data : []);
+      setMensaje(`Se encontraron ${data.length || 0} facturas para el día.`);
     } catch (error) {
       console.error("Error al buscar facturas:", error);
-      toast.update(toastId, {
-        render: "Error al conectar con el servidor",
-        type: "error",
-        isLoading: false,
-        autoClose: 5000
-      });
     } finally {
-      setBuscandoFacturas(false); // Desbloquea el buscador
+      setBuscandoFacturas(false);
     }
-  };
+  }, [filtros, webservices]);
+
+  const obtenerPrefijos = useCallback(async () => {
+    const requestBody = { proyecto: webservices };
+    try {
+      const response = await fetch(consultarPrefijosFacturacion, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+      const data = await response.json();
+      setPrefijos(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error al obtener prefijos:", error);
+    }
+  }, [webservices]);
+
+  const obtenerTerceros = useCallback(async () => {
+    const requestBody = { proyecto: webservices };
+    try {
+      const response = await fetch(consultarTercerosPlanes, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        redirect: "manual",
+        body: JSON.stringify(requestBody)
+      });
+      const data = await response.json();
+      setTerceros(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error al obtener terceros:", error);
+    }
+  }, [webservices]);
+
+  useEffect(() => {
+    buscarFacturas();
+    obtenerPrefijos();
+    obtenerTerceros();
+  }, [obtenerPrefijos, obtenerTerceros]);
 
   const enviarRIPSfactura = async (factura) => {
-    const requestBody = { ...factura, envioRips: '1', webservices: webservices };
+    const requestBody = { ...factura, envioRips: '1', proyecto: webservices };
     const toastId = toast.loading("Enviando RIPS electrónicos...");
-
     try {
-      const response = await fetch(webservicesArray[webservices], {
+      const response = await fetch(enviarRips, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
+        redirect: "manual",
         body: JSON.stringify(requestBody)
       });
 
-      const data = await response.json();
+      // Obtener la respuesta como texto
+      const responseText = await response.text();
+
+      let data;
+      try {
+        // Intentar analizar el JSON
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.warn("La respuesta no es un JSON válido. Procesando como texto.");
+        data = { message: responseText }; // Manejar como texto si no es JSON válido
+      }
+
       const mensaje = data.message || "Respuesta no esperada";
 
-      // Verificamos si el mensaje indica un error
-      const esError = mensaje.includes("contiene errores");
-
+      // Verificar si el mensaje indica un error
+      const esError = mensaje.toLowerCase().includes("error") || mensaje.toLowerCase().includes("rechazado");
       toast.update(toastId, {
         render: mensaje,
         type: esError ? "error" : "success",
         isLoading: false,
-        autoClose: 2000
+        autoClose: 5000
       });
 
       setMensaje(mensaje);
 
       // Si el mensaje confirma el envío exitoso, eliminamos la factura de la lista
-      if (mensaje.includes(`Documento ${factura.prefijo}-${factura.factura_fiscal} de la cuenta ${factura.numerodecuenta} fue enviada correctamente.`)) {
-        setFacturas(prevFacturas => prevFacturas.filter(f =>
-          !(f.prefijo === factura.prefijo && f.factura_fiscal === factura.factura_fiscal && f.numerodecuenta === factura.numerodecuenta)
-        ));
+      if (mensaje.toLowerCase().includes("enviada correctamente")) {
+        setFacturas((prevFacturas) =>
+          prevFacturas.filter(
+            (f) =>
+              !(
+                f.prefijo === factura.prefijo &&
+                f.factura_fiscal === factura.factura_fiscal &&
+                f.numerodecuenta === factura.numerodecuenta
+              )
+          )
+        );
       }
 
+      // Manejar el contenido de `json_respuesta` si está presente
+      if (data.json_respuesta) {
+        console.log("Detalles de la respuesta:", data.json_respuesta);
+        // Aquí puedes procesar `json_respuesta` según tus necesidades
+      }
     } catch (error) {
+      console.error("Error al enviar RIPS:", error);
       toast.update(toastId, {
-        render: "Error al conectar con el servidor",
+        render: "Error al conectar con el servidor o procesar la respuesta.",
         type: "error",
         isLoading: false,
         autoClose: 5000
@@ -223,14 +212,21 @@ function BuscadorFacturas() {
         <div className="col-md-3">
           <select className="form-control form-select form-select-lg mb-3" onChange={(e) => setWebservices(e.target.value)}>
             <optgroup label="Conexus" className="fw-bold text-primary">
-              <option value="sigma">SIGMA</option>
+              <option value="SIIS_SIGMA">SIGMA</option>
+              <option value="SIIS_OFTAPALMIRA">OFTA PALMIRA</option>
+              <option value="SIIS_OFTACARTAGO">OFTA CARTAGO</option>
+              <option value="SIIS_CEO">CEO</option>
               {/* <option value="dime">DIME</option> */}
-              <option value="fal">FAL</option>
-              <option value="cya">CYA</option>
+              <option value="SIIS_FAL">FAL</option>
+              <option value="SIIS_CYA">CYA</option>
             </optgroup>
             <optgroup label="Dataico" className="fw-bold text-danger">
-              <option value="posmedica">POSMÉDICA</option>
-              <option value="ucimed">UCIMED</option>
+              <option value="SIIS_OFQUINDIO">OFTA QUINDIO</option>
+              <option value="SIIS_VISION">OFTA VISION CALI</option>
+              <option value="SIIS_SANDIEGO">SANDIEGO</option>
+              <option value="SIIS_ANDES">LOS ANDES</option>
+              <option value="SIIS_POSMEDICA">POSMÉDICA</option>
+              <option value="SIIS_UCIMED">UCIMED</option>
             </optgroup>
           </select>
         </div>
@@ -238,6 +234,7 @@ function BuscadorFacturas() {
 
       <div className="row">
         <div className="col-md-3">
+          <label className="form-label"></label>
           <select className="form-control" value={filtros.prefijo} onChange={(e) => setFiltros({ ...filtros, prefijo: e.target.value })}>
             <option value="">Seleccione Prefijo</option>
             {
@@ -247,10 +244,16 @@ function BuscadorFacturas() {
           </select>
         </div>
         <div className="col-md-3">
+          <label className="form-label"></label>
           <input className="form-control" type="text" placeholder="Factura Fiscal" value={filtros.factura_fiscal} onChange={(e) => setFiltros({ ...filtros, factura_fiscal: e.target.value })} />
         </div>
         <div className="col-md-3">
-          <input className="form-control" type="date" value={filtros.fecha_registro} onChange={(e) => setFiltros({ ...filtros, fecha_registro: e.target.value })} />
+          <label className="form-label">Fecha Inicio</label>
+          <input className="form-control" type="date" value={filtros.fecha_inicio} onChange={(e) => setFiltros({ ...filtros, fecha_inicio: e.target.value })} />
+        </div>
+        <div className="col-md-3">
+          <label className="form-label">Fecha Fin</label>
+          <input className="form-control" type="date" value={filtros.fecha_fin} onChange={(e) => setFiltros({ ...filtros, fecha_registro: e.target.value })} />
         </div>
         <div className="col-md-3">
           <select className="form-control" value={filtros.tercero} onChange={(e) => setFiltros({ ...filtros, tercero: e.target.value })}>

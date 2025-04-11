@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import BotonesJson from "../BotonesJson";
 import ModalCuentas from "../ModalCuentas";
 import { toast, ToastContainer } from "react-toastify";
@@ -39,7 +39,6 @@ function BuscadorFacturas() {
       }
 
       const data = await response.json();
-
       // Actualiza las facturas y el mensaje
       setFacturas(Array.isArray(data) ? data : []);
       setMensaje(`Se encontraron ${data.length || 0} facturas para el día.`);
@@ -63,35 +62,27 @@ function BuscadorFacturas() {
       setBuscandoFacturas(false); // Desbloquea el buscador
     }
   };
-  const obtenerPrefijos = async () => {
+  const obtenerPrefijos = useCallback(async () => {
     const requestBody = { proyecto: webservices };
     try {
       const response = await fetch(consultarPrefijosFacturacion, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        redirect: "manual",
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
       });
       const data = await response.json();
-      // console.log('prefijos', data);
       setPrefijos(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error al obtener prefijos:", error);
     }
-  };
+  }, [webservices]);
 
-  // Función para obtener terceros desde la API
-  const obtenerTerceros = async () => {
+  const obtenerTerceros = useCallback(async () => {
     const requestBody = { proyecto: webservices };
     try {
       const response = await fetch(consultarTercerosPlanes, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        redirect: "manual",
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
       });
       const data = await response.json();
@@ -99,84 +90,81 @@ function BuscadorFacturas() {
     } catch (error) {
       console.error("Error al obtener terceros:", error);
     }
-  };
+  }, [webservices]);
   useEffect(() => {
     buscarFacturas()
     // Llamar a las funciones cuando el componente se monte
     obtenerPrefijos();
     obtenerTerceros();
-  }, []);
+  }, [obtenerPrefijos, obtenerTerceros]);
 
 
-  // const enviarRIPSfactura = async (factura) => {
-  //   const requestBody = { ...factura, envioRips: '1', webservices: webservices };
-  //   const toastId = toast.loading("Enviando RIPS electrónicos...");
+  const procesarFacturasPendientes = async () => {
+    const facturasPendientes = facturas.filter(
+      (factura) => factura.estado_fac_electronica === "PENDIENTE VALIDACION DIAN"
+    );
 
-  //   try {
-  //     const response = await fetch(webservicesArray[webservices], {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify(requestBody)
-  //     });
+    if (facturasPendientes.length === 0) {
+      toast.info("No hay facturas pendientes de validación.");
+      return;
+    }
 
-  //     const data = await response.json();
-  //     const mensaje = data.message || "Respuesta no esperada";
+    const toastId = toast.loading("Procesando facturas pendientes...");
 
-  //     // Verificamos si el mensaje indica un error
-  //     const esError = mensaje.includes("contiene errores");
+    try {
+      for (const factura of facturasPendientes) {
+        const { prefijo, factura_fiscal, periodo, nit } = factura;
+        const requestBody = {
+          prefijo: prefijo,
+          numero: factura_fiscal,
+          periodo: periodo,
+          nit: nit,
+          proyecto: webservices
+        };
 
-  //     toast.update(toastId, {
-  //       render: mensaje,
-  //       type: esError ? "error" : "success",
-  //       isLoading: false,
-  //       autoClose: 2000
-  //     });
+        const url = "https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarFacturaConexus";
 
-  //     setMensaje(mensaje);
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestBody)
+        });
 
-  //     // Si el mensaje confirma el envío exitoso, eliminamos la factura de la lista
-  //     if (mensaje.includes(`Documento ${factura.prefijo}-${factura.factura_fiscal} de la cuenta ${factura.numerodecuenta} fue enviada correctamente.`)) {
-  //       setFacturas(prevFacturas => prevFacturas.filter(f =>
-  //         !(f.prefijo === factura.prefijo && f.factura_fiscal === factura.factura_fiscal && f.numerodecuenta === factura.numerodecuenta)
-  //       ));
-  //     }
+        const data = await response.json();
 
-  //   } catch (error) {
-  //     toast.update(toastId, {
-  //       render: "Error al conectar con el servidor",
-  //       type: "error",
-  //       isLoading: false,
-  //       autoClose: 5000
-  //     });
-  //   }
-  // };
+        // Verifica si el resultado contiene el campo PDFBase64
+        if (data.GetTransaccionbyIdentificacionResult && data.GetTransaccionbyIdentificacionResult.PDFBase64) {
+          // Cambia el estado de la factura a "VALIDADA DIAN"
+          setFacturas((prevFacturas) =>
+            prevFacturas.map((f) =>
+              f.prefijo === factura.prefijo && f.factura_fiscal === factura.factura_fiscal
+                ? { ...f, estado_fac_electronica: "VALIDADA DIAN" }
+                : f
+            )
+          );
+        } else {
+          toast.error(`Factura ${factura.prefijo}-${factura.factura_fiscal} no tiene un PDF válido.`);
+        }
+      }
 
-  // const envioFacturasPagina = async () => {
-  //   setEnviandopagina(true); // Bloquea el buscador
-  //   const toastId = toast.loading("Enviando todas las facturas...", { position: "top-center" });
-  //   try {
-  //     for (const factura of facturas) {
-  //       await enviarRIPSfactura(factura);
-  //     }
-  //     toast.update(toastId, {
-  //       render: "Todas las facturas han sido enviadas correctamente",
-  //       type: "success",
-  //       isLoading: false,
-  //       autoClose: 2000
-  //     });
-  //   } catch (error) {
-  //     toast.update(toastId, {
-  //       render: "Error al enviar las facturas",
-  //       type: "error",
-  //       isLoading: false,
-  //       autoClose: 5000
-  //     });
-  //   } finally {
-  //     setEnviandopagina(false); // Desbloquea el buscador
-  //   }
-  // };
+      toast.update(toastId, {
+        render: "Facturas pendientes procesadas correctamente.",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000
+      });
+    } catch (error) {
+      console.error("Error al procesar facturas pendientes:", error);
+      toast.update(toastId, {
+        render: "Error al procesar facturas pendientes.",
+        type: "error",
+        isLoading: false,
+        autoClose: 5000
+      });
+    }
+  };
 
   const limpiarFormulario = () => {
     setFiltros({ prefijo: "", factura_fiscal: "", fecha_registro: "" });
@@ -205,7 +193,7 @@ function BuscadorFacturas() {
     setCuentasModal([]);
   };
 
-  const ejecutarLink = async (factura) => {
+  const consultarFacturaConexus = async (factura) => {
     const { prefijo, factura_fiscal, periodo, nit, estado_fac_electronica } = factura;
     const requestBody = {
       prefijo: prefijo,
@@ -216,33 +204,37 @@ function BuscadorFacturas() {
     };
     // Verifica si el estado es "VALIDADA DIAN" o "PENDIENTE VALIDACION DIAN"
     if (estado_fac_electronica === "VALIDADA DIAN" || estado_fac_electronica === "PENDIENTE VALIDACION DIAN") {
-      const url = `https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarFacturaConexus?prefijo=${prefijo}&numero=${factura_fiscal}&periodo=${periodo}&nit=${nit}`;
-
+      const url = "https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarFacturaConexus";
       try {
         const response = await fetch(url, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json"
           },
-          redirect: "manual",
           body: JSON.stringify(requestBody)
         });
         const data = await response.json();
-        console.log(data);
-
         // Verifica si el resultado contiene el campo PDFBase64
         if (data.GetTransaccionbyIdentificacionResult && data.GetTransaccionbyIdentificacionResult.PDFBase64) {
           const pdfBase64 = data.GetTransaccionbyIdentificacionResult.PDFBase64;
-
           // Decodifica el contenido Base64 y crea un Blob para el PDF
           const byteCharacters = atob(pdfBase64);
           const byteNumbers = new Array(byteCharacters.length).fill().map((_, i) => byteCharacters.charCodeAt(i));
           const byteArray = new Uint8Array(byteNumbers);
           const blob = new Blob([byteArray], { type: "application/pdf" });
-
           // Crea una URL para el Blob y ábrelo en una nueva ventana
           const blobUrl = URL.createObjectURL(blob);
           window.open(blobUrl, "_blank");
+          // Cambia el estado de la factura a "VALIDADA DIAN"
+          setFacturas((prevFacturas) =>
+            prevFacturas.map((f) =>
+              f.prefijo === factura.prefijo && f.factura_fiscal === factura.factura_fiscal
+                ? { ...f, estado_fac_electronica: "VALIDADA DIAN" }
+                : f
+            )
+          );
+
+          toast.success("Factura procesada y actualizada a 'VALIDADA DIAN'.");
         } else {
           toast.error("No se pudo obtener el PDF de la transacción.");
         }
@@ -250,6 +242,78 @@ function BuscadorFacturas() {
         console.error("Error al obtener el PDF:", error);
         toast.error("Error al conectar con el servidor.");
       }
+    }
+  };
+
+  const enviarFacturaConexus = async () => {
+    // Filtrar facturas con estado "ERROR" y que pertenezcan al grupo de Conexus
+    const facturasConexusError = facturas.filter(
+      (factura) =>
+        factura.estado_fac_electronica === "ERROR" &&
+        ["SIIS_SIGMA", "SIIS_INDIGO", "SIIS_OFTAPALMIRA", "SIIS_OFTACARTAGO", "SIIS_PINARES", "SIIS_FAL", "SIIS_CYA"].includes(webservices)
+    );
+
+    if (facturasConexusError.length === 0) {
+      toast.info("No hay facturas con estado 'ERROR' para el grupo Conexus.");
+      return;
+    }
+
+    const toastId = toast.loading("Enviando facturas con estado 'ERROR' para Conexus...");
+
+    try {
+      for (const factura of facturasConexusError) {
+        const { prefijo, factura_fiscal } = factura;
+        const requestBody = {
+          proyecto: webservices,
+          envioFacturas: "1",
+          prefijo: prefijo,
+          factura_fiscal: factura_fiscal
+        };
+
+        const url = "https://devel82els.simde.com.co/facturacionElectronica/public/api/enviarFacturaConexus";
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        const data = await response.json();
+
+        // Procesar la respuesta del servidor
+        if (data.response && data.response.codigoRespuesta === "OK") {
+          // Cambia el estado de la factura a "PENDIENTE VALIDACION DIAN"
+          setFacturas((prevFacturas) =>
+            prevFacturas.map((f) =>
+              f.prefijo === factura.prefijo && f.factura_fiscal === factura.factura_fiscal
+                ? { ...f, estado_fac_electronica: "PENDIENTE VALIDACION DIAN" }
+                : f
+            )
+          );
+          toast.success(`Factura ${factura.prefijo}-${factura.factura_fiscal} enviada con éxito.`);
+        } else {
+          toast.error(
+            `Error al enviar la factura ${factura.prefijo}-${factura.factura_fiscal}: ${data.response.DetalleRespuesta || "Error desconocido"}`
+          );
+        }
+      }
+
+      toast.update(toastId, {
+        render: "Facturas con estado 'ERROR' procesadas correctamente.",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000
+      });
+    } catch (error) {
+      console.error("Error al enviar facturas con estado 'ERROR':", error);
+      toast.update(toastId, {
+        render: "Error al enviar facturas con estado 'ERROR'.",
+        type: "error",
+        isLoading: false,
+        autoClose: 5000
+      });
     }
   };
   return (
@@ -322,11 +386,14 @@ function BuscadorFacturas() {
 
       <div className="row mt-3">
         <div className="col-md-3 d-flex">
-          <button className="btn btn-primary me-2" onClick={buscarFacturas} disabled={buscandoFacturas}>
+          <button className="btn btn-primary me-3" onClick={buscarFacturas} disabled={buscandoFacturas}>
             {buscandoFacturas ? "Buscando..." : "Buscar Facturas"}
           </button>
-          <button className="btn btn-secondary" onClick={limpiarFormulario} disabled={buscandoFacturas}>
+          <button className="btn btn-secondary me-3" onClick={limpiarFormulario} disabled={buscandoFacturas}>
             Limpiar
+          </button>
+          <button className="btn btn-success" onClick={procesarFacturasPendientes} disabled={buscandoFacturas}>
+            Procesar Facturas Pendientes
           </button>
         </div>
       </div>
@@ -369,21 +436,35 @@ function BuscadorFacturas() {
                   </td>
                   <td style={{ textAlign: "center" }}>{factura.fecha_registro}</td>
                   <td style={{ textAlign: "center" }}>
-                    <button
-                      className={`btn estado-factura ${factura.estado_fac_electronica === "VALIDADA DIAN"
-                          ? "validada"
-                          : factura.estado_fac_electronica === "PENDIENTE VALIDACION DIAN"
-                            ? "pendiente"
-                            : "error"
-                        }`}
-                      onClick={() => ejecutarLink(factura)}
-                      disabled={
-                        factura.estado_fac_electronica !== "VALIDADA DIAN" &&
-                        factura.estado_fac_electronica !== "PENDIENTE VALIDACION DIAN"
-                      }
-                    >
-                      {factura.estado_fac_electronica}
-                    </button>
+                    {/* Botón para facturas con estado "ERROR" o "SIN ENVIAR" */}
+                    {factura.estado_fac_electronica === "ERROR" || factura.estado_fac_electronica === "SIN ENVIAR" ? (
+                      <button
+                        className="btn btn-danger me-2"
+                        onClick={() => enviarFacturaConexus(factura)}
+                      >
+                        Enviar Factura
+                      </button>
+                    ) : null}
+
+                    {/* Botón para facturas con estado "VALIDADA DIAN" */}
+                    {factura.estado_fac_electronica === "VALIDADA DIAN" ? (
+                      <button
+                        className="btn btn-success"
+                        onClick={() => consultarFacturaConexus(factura)}
+                      >
+                        VALIDADA DIAN
+                      </button>
+                    ) : null}
+
+                    {/* Botón para facturas con estado "PENDIENTE VALIDACION DIAN" */}
+                    {factura.estado_fac_electronica === "PENDIENTE VALIDACION DIAN" ? (
+                      <button
+                        className="btn btn-warning"
+                        onClick={() => consultarFacturaConexus(factura)}
+                      >
+                        Consultar Factura
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}
