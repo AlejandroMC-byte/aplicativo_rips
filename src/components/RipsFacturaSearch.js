@@ -253,7 +253,7 @@ function BuscadorFacturas() {
         </div>
         <div className="col-md-3">
           <label className="form-label">Fecha Fin</label>
-          <input className="form-control" type="date" value={filtros.fecha_fin} onChange={(e) => setFiltros({ ...filtros, fecha_registro: e.target.value })} />
+          <input className="form-control" type="date" value={filtros.fecha_fin} onChange={(e) => setFiltros({ ...filtros, fecha_fin: e.target.value })} />
         </div>
         <div className="col-md-3">
           <select className="form-control" value={filtros.tercero} onChange={(e) => setFiltros({ ...filtros, tercero: e.target.value })}>
