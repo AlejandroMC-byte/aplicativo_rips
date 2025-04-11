@@ -10,7 +10,7 @@ function BuscadorFacturas() {
   const [mensaje, setMensaje] = useState("");
   const [buscandoFacturas, setBuscandoFacturas] = useState(false);
   const [enviandopagina, setEnviandopagina] = useState(false);
-  const [webservices, setWebservices] = useState("SIIS_SIGMA");
+  const [webservices, setWebservices] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [cuentasModal, setCuentasModal] = useState([]);
   const [prefijos, setPrefijos] = useState([]);
@@ -211,6 +211,7 @@ function BuscadorFacturas() {
       <div className="row">
         <div className="col-md-3">
           <select className="form-control form-select form-select-lg mb-3" onChange={(e) => setWebservices(e.target.value)}>
+              <option value="">--SELECCIONE--</option>
             <optgroup label="Conexus" className="fw-bold text-primary">
               <option value="SIIS_SIGMA">SIGMA</option>
               <option value="SIIS_OFTAPALMIRA">OFTA PALMIRA</option>
