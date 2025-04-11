@@ -80,10 +80,12 @@ function BuscadorFacturas() {
   }, [webservices]);
 
   useEffect(() => {
-    buscarFacturas();
-    obtenerPrefijos();
-    obtenerTerceros();
-  }, [obtenerPrefijos, obtenerTerceros]);
+    if (webservices !== "") {
+      buscarFacturas();
+      obtenerPrefijos();
+      obtenerTerceros();
+    }
+  }, [webservices,obtenerPrefijos, obtenerTerceros]);
 
   const enviarRIPSfactura = async (factura) => {
     const requestBody = { ...factura, envioRips: '1', proyecto: webservices };
