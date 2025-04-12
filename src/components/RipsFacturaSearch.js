@@ -215,20 +215,22 @@ function BuscadorFacturas() {
           <select className="form-control form-select form-select-lg mb-3" onChange={(e) => setWebservices(e.target.value)}>
               <option value="">--SELECCIONE--</option>
             <optgroup label="Conexus" className="fw-bold text-primary">
-              <option value="SIIS_SIGMA">SIGMA</option>
-              <option value="SIIS_OFTAPALMIRA">OFTA PALMIRA</option>
-              <option value="SIIS_OFTACARTAGO">OFTA CARTAGO</option>
               <option value="SIIS_CEO">CEO</option>
-              {/* <option value="dime">DIME</option> */}
-              <option value="SIIS_FAL">FAL</option>
               <option value="SIIS_CYA">CYA</option>
+              <option value="SIIS_FAL">FAL</option>
+              <option value="SIIS_OFTACARTAGO">OFTA CARTAGO</option>
+              <option value="SIIS_OFTAPALMIRA">OFTA PALMIRA</option>
+              <option value="SIIS_PINARES">PINARES</option>
+              <option value="SIIS_SIGMA">SIGMA</option>
+              {/* <option value="dime">DIME</option> */}
             </optgroup>
             <optgroup label="Dataico" className="fw-bold text-danger">
+              <option value="SIIS_ENDOCIRUJANOS">ENDOCIRUJANOS</option>
+              <option value="SIIS_ANDES">LOS ANDES</option>
               <option value="SIIS_OFQUINDIO">OFTA QUINDIO</option>
               <option value="SIIS_VISION">OFTA VISION CALI</option>
-              <option value="SIIS_SANDIEGO">SANDIEGO</option>
-              <option value="SIIS_ANDES">LOS ANDES</option>
               <option value="SIIS_POSMEDICA">POSMÉDICA</option>
+              <option value="SIIS_SANDIEGO">SANDIEGO</option>
               <option value="SIIS_UCIMED">UCIMED</option>
             </optgroup>
           </select>
