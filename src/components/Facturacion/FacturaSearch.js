@@ -437,7 +437,7 @@ function BuscadorFacturas() {
                   <td style={{ textAlign: "center" }}>{factura.fecha_registro}</td>
                   <td style={{ textAlign: "center" }}>
                     {/* Botón para facturas con estado "ERROR" o "SIN ENVIAR" */}
-                    {factura.estado_fac_electronica === "ERROR" || factura.estado_fac_electronica === "SIN ENVIAR" ? (
+                    {factura.estado_fac_electronica === "ERROR" || factura.estado_fac_electronica === "FACTURA SIN ENVIAR" ? (
                       <button
                         className="btn btn-danger me-2"
                         onClick={() => enviarFacturaConexus(factura)}
