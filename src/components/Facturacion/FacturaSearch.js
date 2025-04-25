@@ -249,7 +249,7 @@ function BuscadorFacturas() {
     // Filtrar facturas con estado "ERROR" y que pertenezcan al grupo de Conexus
     const facturasConexusError = facturas.filter(
       (factura) =>
-        factura.estado_fac_electronica === "ERROR" &&
+        (factura.estado_fac_electronica === "ERROR" || factura.estado_fac_electronica === "FACTURA SIN ENVIAR") &&
         ["SIIS_SIGMA", "SIIS_INDIGO", "SIIS_OFTAPALMIRA", "SIIS_OFTACARTAGO", "SIIS_PINARES", "SIIS_FAL", "SIIS_CYA"].includes(webservices)
     );
 
@@ -258,7 +258,7 @@ function BuscadorFacturas() {
       return;
     }
 
-    const toastId = toast.loading("Enviando facturas con estado 'ERROR' para Conexus...");
+    const toastId = toast.loading("Enviando facturas con estado 'ERROR' o 'FACTURA SIN ENVIAR' para Conexus...");
 
     try {
       for (const factura of facturasConexusError) {
@@ -283,7 +283,7 @@ function BuscadorFacturas() {
         const data = await response.json();
 
         // Procesar la respuesta del servidor
-        if (data.response && data.response.codigoRespuesta === "OK") {
+        if (data.message === "Factura enviada con éxito") {
           // Cambia el estado de la factura a "PENDIENTE VALIDACION DIAN"
           setFacturas((prevFacturas) =>
             prevFacturas.map((f) =>
