@@ -4,6 +4,8 @@ import ModalCuentas from "../ModalCuentas";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import './Styles/FacturaSearch.css';
+import Modal from "react-bootstrap/Modal";
+import Button from "react-bootstrap/Button";
 function BuscadorFacturas() {
   const [facturas, setFacturas] = useState([]);
   const [filtros, setFiltros] = useState({ prefijo: "", factura_fiscal: "", fecha_registro: "" });
@@ -15,6 +17,8 @@ function BuscadorFacturas() {
   const [cuentasModal, setCuentasModal] = useState([]);
   const [prefijos, setPrefijos] = useState([]);
   const [terceros, setTerceros] = useState([]);
+  const [showResponseModal, setShowResponseModal] = useState(false);
+  const [responseData, setResponseData] = useState(null);
   const obtenerFacturas = "https://devel82els.simde.com.co/facturacionElectronica/public/api/obtenerFacturas";
   const consultarPrefijosFacturacion = "https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarPrefijosFacturacion";
   const consultarTercerosPlanes = "https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarTercerosPlanes";
@@ -245,63 +249,82 @@ function BuscadorFacturas() {
     }
   };
 
-  const enviarFacturaConexus = async () => {
-    // Filtrar facturas con estado "ERROR" y que pertenezcan al grupo de Conexus
-    const facturasConexusError = facturas.filter(
-      (factura) =>
-        (factura.estado_fac_electronica === "ERROR" || factura.estado_fac_electronica === "FACTURA SIN ENVIAR") &&
-        ["SIIS_SIGMA", "SIIS_INDIGO", "SIIS_OFTAPALMIRA", "SIIS_OFTACARTAGO", "SIIS_PINARES", "SIIS_FAL", "SIIS_CYA"].includes(webservices)
+  const enviarFacturaConexus = async (factura) => {
+    const { prefijo, factura_fiscal } = factura;
+    const requestBody = {
+      proyecto: webservices,
+      envioFacturas: "1",
+      prefijo: prefijo,
+      factura_fiscal: factura_fiscal
+    };
+
+    const toastId = toast.loading(`Enviando factura ${prefijo}-${factura_fiscal} para Conexus...`);
+
+    try {
+      const url = "https://devel82els.simde.com.co/facturacionElectronica/public/api/enviarFacturaConexus";
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+
+      if (data.message === "Factura enviada con éxito") {
+        // Actualiza el estado de la factura en la lista local
+        setFacturas((prevFacturas) =>
+          prevFacturas.map((f) =>
+            f.prefijo === prefijo && f.factura_fiscal === factura_fiscal
+              ? { ...f, estado_fac_electronica: "PENDIENTE VALIDACION DIAN" }
+              : f
+          )
+        );
+        toast.success(`Factura ${prefijo}-${factura_fiscal} enviada con éxito.`);
+      } else {
+        setResponseData(data.response);
+        setShowResponseModal(true);
+
+        toast.error(
+          `Error al enviar la factura ${prefijo}-${factura_fiscal}`
+        );
+      }
+      toast.update(toastId, {
+        isLoading: false,
+        autoClose: 3000
+      });
+    } catch (error) {
+      console.error(`Error al enviar la factura ${prefijo}-${factura_fiscal}:`, error);
+      toast.update(toastId, {
+        render: `Error al enviar la factura ${prefijo}-${factura_fiscal}.`,
+        type: "error",
+        isLoading: false,
+        autoClose: 5000
+      });
+    }
+  };
+  const validarFacturasErrorSinEnviar = async () => {
+    const facturasAProcesar = facturas.filter(
+      (factura) => factura.estado_fac_electronica === "ERROR" || factura.estado_fac_electronica === "FACTURA SIN ENVIAR"
     );
 
-    if (facturasConexusError.length === 0) {
-      toast.info("No hay facturas con estado 'ERROR' para el grupo Conexus.");
+    if (facturasAProcesar.length === 0) {
+      toast.info("No hay facturas con estado 'ERROR' o 'FACTURA SIN ENVIAR' para enviar.");
       return;
     }
 
-    const toastId = toast.loading("Enviando facturas con estado 'ERROR' o 'FACTURA SIN ENVIAR' para Conexus...");
+    const toastId = toast.loading(`Enviando ${facturasAProcesar.length} facturas con estado 'ERROR' o 'FACTURA SIN ENVIAR' para Conexus...`);
 
     try {
-      for (const factura of facturasConexusError) {
-        const { prefijo, factura_fiscal } = factura;
-        const requestBody = {
-          proyecto: webservices,
-          envioFacturas: "1",
-          prefijo: prefijo,
-          factura_fiscal: factura_fiscal
-        };
-
-        const url = "https://devel82els.simde.com.co/facturacionElectronica/public/api/enviarFacturaConexus";
-
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-        const data = await response.json();
-
-        // Procesar la respuesta del servidor
-        if (data.message === "Factura enviada con éxito") {
-          // Cambia el estado de la factura a "PENDIENTE VALIDACION DIAN"
-          setFacturas((prevFacturas) =>
-            prevFacturas.map((f) =>
-              f.prefijo === factura.prefijo && f.factura_fiscal === factura.factura_fiscal
-                ? { ...f, estado_fac_electronica: "PENDIENTE VALIDACION DIAN" }
-                : f
-            )
-          );
-          toast.success(`Factura ${factura.prefijo}-${factura.factura_fiscal} enviada con éxito.`);
-        } else {
-          toast.error(
-            `Error al enviar la factura ${factura.prefijo}-${factura.factura_fiscal}: ${data.response.DetalleRespuesta || "Error desconocido"}`
-          );
-        }
+      for (const factura of facturasAProcesar) {
+        await enviarFacturaConexus(factura); // Llamamos a la función enviarFacturaConexus individualmente
+        // Pequeña pausa para evitar saturar el servidor (opcional)
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       toast.update(toastId, {
-        render: "Facturas con estado 'ERROR' procesadas correctamente.",
+        render: `Se intentaron enviar ${facturasAProcesar.length} facturas con estado 'ERROR' o 'FACTURA SIN ENVIAR'.`,
         type: "success",
         isLoading: false,
         autoClose: 3000
@@ -309,15 +332,43 @@ function BuscadorFacturas() {
     } catch (error) {
       console.error("Error al enviar facturas con estado 'ERROR':", error);
       toast.update(toastId, {
-        render: "Error al enviar facturas con estado 'ERROR'.",
+        render: "Error al intentar enviar las facturas.",
         type: "error",
         isLoading: false,
         autoClose: 5000
       });
     }
   };
+  const ResponseModal = ({ show, handleClose, responseData }) => {
+    return (
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Detalles de la Respuesta</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {responseData ? (
+            <pre style={{ whiteSpace: "pre-wrap", wordWrap: "break-word" }}>
+              {JSON.stringify(responseData, null, 2)}
+            </pre>
+          ) : (
+            <p>No hay datos disponibles.</p>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  };
   return (
     <div className="container mt-4">
+      <ResponseModal
+        show={showResponseModal}
+        handleClose={() => setShowResponseModal(false)}
+        responseData={responseData}
+      />
       <ToastContainer />
       <h2 className="mb-3">Buscar Facturas electronicas</h2>
       <div className="row">
@@ -392,8 +443,11 @@ function BuscadorFacturas() {
           <button className="btn btn-secondary me-3" onClick={limpiarFormulario} disabled={buscandoFacturas}>
             Limpiar
           </button>
-          <button className="btn btn-success" onClick={procesarFacturasPendientes} disabled={buscandoFacturas}>
+          <button className="btn btn-success me-3" onClick={procesarFacturasPendientes} disabled={buscandoFacturas}>
             Procesar Facturas Pendientes
+          </button>
+          <button className="btn btn-danger" onClick={validarFacturasErrorSinEnviar} disabled={buscandoFacturas}>
+            Validar Facturas con Error
           </button>
         </div>
       </div>
