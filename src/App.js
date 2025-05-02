@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import RipsFacturaSearch from "./components/RipsFacturaSearch";
 import FacturaSearch from "./components/Facturacion/FacturaSearch";
+import ReporteRipsProyectos from "./components/Administrativo/Rips/ReporteRipsProyectos";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -15,7 +16,7 @@ const NotasDebito = () => <div className="p-4">Notas Débito en construcción...
 const NotasCreditoGlosas = () => <div className="p-4">Notas Crédito Glosas en construcción...</div>;
 const RipsNotasCreditoGlosas = () => <div className="p-4">RIPS Notas Crédito Glosas en construcción...</div>;
 const ReporteFacturacion = () => <div className="p-4">Reporte Facturación en construcción...</div>;
-const ReporteRipsElectronicos = () => <div className="p-4">Reporte RIPS Electrónicos en construcción...</div>;
+// const ReporteRipsElectronicos = () => <div className="p-4">Reporte RIPS Electrónicos en construcción...</div>;
 
 function App() {
   const [sidebarVisible, setSidebarVisible] = useState(true);
@@ -40,7 +41,7 @@ function App() {
               <Route path="/rips-factura" element={<RipsFacturaSearch />} />
               <Route path="/rips-notas-credito-glosas" element={<RipsNotasCreditoGlosas />} />
               <Route path="/reporte-facturacion" element={<ReporteFacturacion />} />
-              <Route path="/reporte-rips-electronicos" element={<ReporteRipsElectronicos />} />
+              <Route path="/reporte-rips-electronicos" element={<ReporteRipsProyectos />} />
               <Route path="*" element={<RipsFacturaSearch />} />
             </Routes>
           </div>

@@ -377,6 +377,7 @@ function BuscadorFacturas() {
             <optgroup label="Conexus" className="fw-bold text-primary">
               <option value="SIIS_SIGMA">SIGMA</option>
               <option value="SIIS_INDIGO">INDIGO</option>
+              <option value="SIIS_CEO">CEO</option>
               <option value="SIIS_OFTAPALMIRA">OFTA PALMIRA</option>
               <option value="SIIS_OFTACARTAGO">OFTA CARTAGO</option>
               <option value="SIIS_PINARES">PINARES</option>

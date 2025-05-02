@@ -218,6 +218,7 @@ function BuscadorFacturas() {
               <option value="SIIS_CEO">CEO</option>
               <option value="SIIS_CYA">CYA</option>
               <option value="SIIS_FAL">FAL</option>
+              <option value="SIIS_NPMEDICAL">NPMEDICAL</option>
               <option value="SIIS_OFTACARTAGO">OFTA CARTAGO</option>
               <option value="SIIS_OFTAPALMIRA">OFTA PALMIRA</option>
               <option value="SIIS_PINARES">PINARES</option>
@@ -227,10 +228,14 @@ function BuscadorFacturas() {
             <optgroup label="Dataico" className="fw-bold text-danger">
               <option value="SIIS_ENDOCIRUJANOS">ENDOCIRUJANOS</option>
               <option value="SIIS_ANDES">LOS ANDES</option>
+              <option value="SIIS_MAS_OPORTUNA">MAS OPORTUNA</option>
               <option value="SIIS_OFQUINDIO">OFTA QUINDIO</option>
               <option value="SIIS_VISION">OFTA VISION CALI</option>
+              <option value="SIIS_OTORRINOS">OTORRINOS</option>
               <option value="SIIS_POSMEDICA">POSMÉDICA</option>
+              <option value="SIIS_SANE">SANE</option>
               <option value="SIIS_SANDIEGO">SANDIEGO</option>
+              <option value="SIIS_SEVISALUD">SEVISALUD</option>
               <option value="SIIS_UCIMED">UCIMED</option>
             </optgroup>
           </select>
