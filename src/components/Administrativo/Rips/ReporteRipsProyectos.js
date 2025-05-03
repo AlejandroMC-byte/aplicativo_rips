@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { Table, Form, Button, Spinner, Alert } from 'react-bootstrap';
+import { Table, Form, Button, Spinner, Alert, Row, Col } from 'react-bootstrap'; // Importar Row y Col
 
-// Datos dummy de proyectos. En un caso real, esto vendría de una API.
+// Lista de proyectos basada en las opciones proporcionadas
 const PROJECTS_LIST = [
   // SIIS group (asumimos que el valor es el ID y el texto es el nombre)
   { id: 'SIIS_CEO', name: 'CEO' },
@@ -29,10 +29,8 @@ const PROJECTS_LIST = [
 ];
 
 // *** REEMPLAZA ESTA URL CON TU ENDPOINT REAL ***
-const SINGLE_FETCH_URL = '/api/fetchProjectData';
+const SINGLE_FETCH_URL = 'https://devel82els.simde.com.co/facturacionElectronica/public/api/consultarRipsValidados'; // Ejemplo: un endpoint POST que espera { projectId: 'SIIS_CEO', fechaInicial: 'YYYY-MM-DD', fechaFinal: 'YYYY-MM-DD' }
 
-// URL base dummy para simular errores en algunos fetches
-// const BASE_API_URL = 'https://jsonplaceholder.typicode.com/posts/';
 
 function ReporteRipsProyectos() {
   const [projects, setProjects] = useState([]);
@@ -40,18 +38,14 @@ function ReporteRipsProyectos() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Cargar proyectos (usando datos dummy aquí)
+  // Estados para las fechas
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+
+  // Cargar proyectos (usamos la lista fija aquí)
   useEffect(() => {
-    // Aquí harías un fetch real para obtener la lista de proyectos si fuera necesario
-    // try {
-    //   const response = await fetch('/api/projects');
-    //   if (!response.ok) throw new Error('Error fetching projects');
-    //   const data = await response.json();
-    //   setProjects(data);
-    // } catch (err) {
-    //   setError(err.message);
-    // }
-    setProjects(PROJECTS_LIST); // Usamos datos dummy por ahora
+    setProjects(PROJECTS_LIST);
   }, []);
 
   // Manejar la selección de checkboxes
@@ -69,117 +63,132 @@ function ReporteRipsProyectos() {
 
   // Manejar la selección de todos los checkboxes
   const handleSelectAllChange = (isChecked) => {
-      setSelectedProjects(prevSelected => {
-          const newSelected = new Set(prevSelected);
-          if (isChecked) {
-              projects.forEach(project => newSelected.add(project.id));
-          } else {
-              newSelected.clear();
-          }
-          return newSelected;
-      });
+    setSelectedProjects(prevSelected => {
+      const newSelected = new Set(prevSelected);
+      if (isChecked) {
+        projects.forEach(project => newSelected.add(project.id));
+      } else {
+        newSelected.clear();
+      }
+      return newSelected;
+    });
   };
-
 
   // Generar el archivo Excel
   const generateExcel = async () => {
+    // Validar que se hayan seleccionado proyectos
     if (selectedProjects.size === 0) {
       alert('Por favor, selecciona al menos un proyecto.');
       return;
     }
 
+    // Validar que se hayan seleccionado fechas
+    if (!startDate || !endDate) {
+      alert('Por favor, selecciona una fecha inicial y una fecha final.');
+      return;
+    }
+
+    // Opcional: Validar que la fecha inicial no sea posterior a la final
+    if (new Date(startDate) > new Date(endDate)) {
+      alert('La fecha inicial no puede ser posterior a la fecha final.');
+      return;
+    }
+
+
     setLoading(true);
     setError(null);
     const workbook = XLSX.utils.book_new();
-    let allProjectsData = []; // Array para almacenar los datos de todos los proyectos seleccionados
+    let allProjectsData = []; // Array para almacenar los datos que irán en el Excel
 
-    // Añadir encabezados generales
-    allProjectsData.push(['Nombre del Proyecto', 'Datos Obtenidos']);
-    allProjectsData.push([]); // Fila en blanco para separación
+    // Añadir información de fechas al inicio del reporte
+     allProjectsData.push(['Reporte de Cantidad de Rips Validados por Proyecto y Fecha']);
+    allProjectsData.push(['Fecha Inicial:', startDate]);
+    allProjectsData.push(['Fecha Final:', endDate]);
+    allProjectsData.push([]); // Separador
+
+    // Añadir encabezados para las columnas de datos
+     allProjectsData.push(['Proyecto', 'Cantidad Rips Validados']);
+     // No añadimos fila en blanco aquí para que los datos de los proyectos sigan inmediatamente
+
 
     try {
       for (const projectId of selectedProjects) {
         const project = projects.find(p => p.id === projectId);
-        if (!project) continue; // Saltar si el proyecto no se encuentra (debería no pasar)
-
-        allProjectsData.push([`--- ${project.name} ---`]); // Separador por proyecto
+        if (!project) {
+             // Manejar caso si el proyecto no se encuentra en la lista original (no debería pasar si la lista es fija)
+             allProjectsData.push([`ID Desconocido: ${projectId}`, 'Error:', 'Proyecto no encontrado en la lista inicial.']);
+             console.error(`Proyecto con ID ${projectId} no encontrado en PROJECTS_LIST.`);
+             continue;
+        }
 
         try {
-          const response = await fetch(project.apiUrl);
+          // *** FETCH A LA ÚNICA URL, ENVIANDO EL ID DEL PROYECTO Y LAS FECHAS EN EL CUERPO ***
+          const response = await fetch(SINGLE_FETCH_URL, {
+            method: 'POST', // O el método que use tu API
+            headers: {
+              'Content-Type': 'application/json',
+              // Agrega otros headers si son necesarios (ej. Authorization)
+            },
+            body: JSON.stringify({
+              proyecto: project.id,
+              consultaRipsValidados: 1,
+              fechaInicial: startDate, // Enviar fecha inicial
+              fechaFinal: endDate      // Enviar fecha final
+            }),
+          });
+
           if (!response.ok) {
-            // Manejar errores de fetch por proyecto
-             allProjectsData.push(['Error al obtener datos:', `Status: ${response.status}, StatusText: ${response.statusText}`]);
-             console.error(`Error fetching data for project ${project.name}: ${response.status} ${response.statusText}`);
-             continue; // Pasar al siguiente proyecto
-          }
-          const data = await response.json();
-
-          // Aquí decides cómo representar los datos en la celda.
-          // Si los datos son simples, podrías ponerlos directamente.
-          // Si son complejos (JSON), puedes stringificarlos o procesarlos.
-          // Ejemplo simple: stringificar el JSON
-          allProjectsData.push(['Datos JSON:', JSON.stringify(data, null, 2)]); // null, 2 para formato legible
-
-          // Si los datos fueran una lista de objetos como [{campo1: v1, campo2: v2}, ...],
-          // podrías procesarlos para añadirlos como filas y columnas:
-          /*
-          if (Array.isArray(data) && data.length > 0) {
-              // Asumiendo que cada objeto tiene las mismas keys
-              const headers = Object.keys(data[0]);
-              allProjectsData.push(headers); // Headers para los datos del proyecto
-              data.forEach(item => {
-                  allProjectsData.push(headers.map(header => item[header])); // Fila de datos
-              });
-          } else if (typeof data === 'object' && data !== null) {
-               // Si es un solo objeto
-               const headers = Object.keys(data);
-               allProjectsData.push(headers);
-               allProjectsData.push(headers.map(header => data[header]));
+            // Si el fetch falla (ej. error 404, 500)
+             allProjectsData.push([project.name, 'Error Fetch:', `Status: ${response.status}, StatusText: ${response.statusText}`]);
+            console.error(`Error fetching data for project ${project.name} (${project.id}) from ${startDate} to ${endDate}: ${response.status} ${response.statusText}`);
           } else {
-              allProjectsData.push(['Datos:', data]); // Para tipos primitivos
+              const data = await response.json();
+              // *** PROCESAR LA RESPUESTA Y EXTRAER LA CANTIDAD ***
+              // Asumiendo que la respuesta es { message: string, cantidad: string }
+              if (data && typeof data.cantidad !== 'undefined') {
+                   // Añadir una fila con el Nombre del Proyecto y la Cantidad
+                   allProjectsData.push([project.name, data.cantidad]);
+              } else {
+                   // Si la respuesta tiene un formato inesperado (no tiene 'cantidad')
+                   allProjectsData.push([project.name, 'Error Datos:', 'Respuesta de API con formato inesperado (falta "cantidad").']);
+                   console.error(`API response missing 'cantidad' for project ${project.name}:`, data);
+              }
           }
-          */
-
 
         } catch (fetchError) {
-           allProjectsData.push(['Error al obtener datos:', fetchError.message]);
-           console.error(`Workspace error for project ${project.name}:`, fetchError);
+           // Manejar errores de red u otras excepciones durante el fetch
+           allProjectsData.push([project.name, 'Error Fetch:', 'Excepción: ' + fetchError.message]);
+           console.error(`Workspace exception for project ${project.name} (${project.id}) from ${startDate} to ${endDate}:`, fetchError);
         }
-         allProjectsData.push([]); // Fila en blanco después de cada proyecto
+         // No añadimos fila en blanco después de cada proyecto para una tabla continua
       }
+
+       // Opcional: Añadir una fila en blanco al final de la tabla de datos
+       // allProjectsData.push([]);
+
 
       // Crear una hoja de cálculo a partir del array de arrays
       const worksheet = XLSX.utils.aoa_to_sheet(allProjectsData);
 
-       // Ajustar ancho de columnas (opcional, basado en contenido)
-       // Necesita un poco más de lógica para calcular el ancho apropiado
-        const columnWidths = allProjectsData[0].map((header, i) => ({
-            wch: Math.max(
-                header.length, // Ancho mínimo basado en el header
-                ...allProjectsData.slice(2) // Empezar después de los headers generales y fila en blanco
-                    .filter((_, rowIndex) => allProjectsData[rowIndex + 2][i] !== undefined) // Filtrar filas donde esta columna existe
-                    .map(row => String(row[i]).length || 0) // Obtener el largo de cada celda
-            )
-        }));
-
-       // Ajustar un poco los anchos calculados
-       if (columnWidths.length > 0) {
-         columnWidths[0].wch = Math.min(Math.max(columnWidths[0].wch, 20), 60); // Nombre proyecto: min 20, max 60
-       }
-        if (columnWidths.length > 1) {
-          columnWidths[1].wch = Math.min(Math.max(columnWidths[1].wch, 50), 150); // Datos: min 50, max 150
-        }
-
-       worksheet['!cols'] = columnWidths;
+      // Ajustar ancho de columnas (opcional, basado en contenido)
+       // Ajusta estos valores (wch) según el ancho que necesites
+        if (allProjectsData.length > 2) { // Asegurarse de que hay filas de datos además de encabezados y fechas
+        const columnWidths = [
+                { wch: 30 }, // Ancho para la columna 'Proyecto'
+                { wch: 20 }  // Ancho para la columna 'Cantidad Rips Validados'
+        ];
+        worksheet['!cols'] = columnWidths;
+      }
 
 
       // Añadir la hoja al libro de trabajo
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Datos Proyectos');
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte Cantidades'); // Nombre de la hoja
 
       // Generar el archivo Excel y guardarlo
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
       const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
-      saveAs(dataBlob, 'DatosProyectosSeleccionados.xlsx');
+      // Nombrar el archivo incluyendo las fechas seleccionadas
+      saveAs(dataBlob, `Reporte_Cantidades_${startDate}_to_${endDate}.xlsx`);
 
     } catch (err) {
       setError('Error general al procesar los datos o generar el Excel: ' + err.message);
@@ -189,29 +198,58 @@ function ReporteRipsProyectos() {
     }
   };
 
-   // Determinar si el checkbox "Seleccionar Todos" debe estar marcado
-   const isAllSelected = projects.length > 0 && selectedProjects.size === projects.length;
-    const isIndeterminate = selectedProjects.size > 0 && selectedProjects.size < projects.length;
+  // Determinar si el checkbox "Seleccionar Todos" debe estar marcado
+  const isAllSelected = projects.length > 0 && selectedProjects.size === projects.length;
+   // Determinar si el checkbox "Seleccionar Todos" debe estar en estado indeterminado
+  const isIndeterminate = selectedProjects.size > 0 && selectedProjects.size < projects.length;
 
 
   return (
     <div className="container mt-4">
-      <h2>Seleccionar Proyectos</h2>
+      <h2>Reporte de Cantidad de Rips Validados</h2>
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <Table striped bordered hover responsive>
+      {/* Campos de Fecha Inicial y Fecha Final */}
+      <Row className="mb-3">
+        <Col md={6}>
+          <Form.Group controlId="startDate">
+            <Form.Label>Fecha Inicial:</Form.Label>
+            <Form.Control
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              disabled={loading} // Deshabilitar mientras carga
+            />
+          </Form.Group>
+        </Col>
+        <Col md={6}>
+          <Form.Group controlId="endDate">
+            <Form.Label>Fecha Final:</Form.Label>
+            <Form.Control
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              disabled={loading} // Deshabilitar mientras carga
+            />
+          </Form.Group>
+        </Col>
+      </Row>
+
+
+      {/* Tabla de Selección de Proyectos */}
+      <Table striped bordered hover responsive className="mb-3"> {/* Added mb-3 for margin below table */}
         <thead>
           <tr>
-             <th>
-                 <Form.Check
-                     type="checkbox"
-                     checked={isAllSelected}
-                     indeterminate={isIndeterminate}
-                     onChange={(e) => handleSelectAllChange(e.target.checked)}
-                     disabled={projects.length === 0}
-                 />
-             </th>
+            <th style={{ width: '50px' }}> {/* Ancho fijo para la columna de checkbox */}
+              <Form.Check
+                type="checkbox"
+                checked={isAllSelected}
+                indeterminate={isIndeterminate}
+                onChange={(e) => handleSelectAllChange(e.target.checked)}
+                disabled={projects.length === 0 || loading} // Deshabilitar si carga o no hay proyectos
+              />
+            </th>
             <th>Nombre del Proyecto</th>
           </tr>
         </thead>
@@ -219,7 +257,7 @@ function ReporteRipsProyectos() {
           {projects.length === 0 ? (
             <tr>
               <td colSpan="2" className="text-center">
-                {loading ? <Spinner animation="border" size="sm" /> : 'No hay proyectos disponibles'}
+                No hay proyectos disponibles
               </td>
             </tr>
           ) : (
@@ -230,6 +268,7 @@ function ReporteRipsProyectos() {
                     type="checkbox"
                     checked={selectedProjects.has(project.id)}
                     onChange={(e) => handleCheckboxChange(project.id, e.target.checked)}
+                    disabled={loading} // Deshabilitar checkboxes mientras se genera el excel
                   />
                 </td>
                 <td>{project.name}</td>
@@ -239,10 +278,12 @@ function ReporteRipsProyectos() {
         </tbody>
       </Table>
 
+      {/* Botón Generar */}
       <Button
         variant="primary"
         onClick={generateExcel}
-        disabled={selectedProjects.size === 0 || loading}
+        // Deshabilitar si no hay proyectos seleccionados, no hay fechas, o está cargando
+        disabled={selectedProjects.size === 0 || !startDate || !endDate || loading}
       >
         {loading ? (
           <>
@@ -250,7 +291,7 @@ function ReporteRipsProyectos() {
             Generando Excel...
           </>
         ) : (
-          'Generar Excel de Proyectos Seleccionados'
+          'Generar Reporte Excel'
         )}
       </Button>
 
