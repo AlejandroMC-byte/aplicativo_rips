@@ -20,7 +20,7 @@ const PROJECTS_LIST = [
   { id: 'SIIS_MAS_OPORTUNA', name: 'MAS OPORTUNA' },
   { id: 'SIIS_OFQUINDIO', name: 'OFTA QUINDIO' },
   { id: 'SIIS_VISION', name: 'OFTA VISION CALI' },
-  { id: 'SIIS_OTORRINOS', name: 'OTORRINOS' },
+  { id: 'SIIS_OTORRINOSCALI', name: 'OTORRINOS' },
   { id: 'SIIS_POSMEDICA', name: 'POSMÉDICA' },
   { id: 'SIIS_SANE', name: 'SANE' },
   { id: 'SIIS_SANDIEGO', name: 'SANDIEGO' },

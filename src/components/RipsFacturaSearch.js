@@ -231,7 +231,7 @@ function BuscadorFacturas() {
               <option value="SIIS_MAS_OPORTUNA">MAS OPORTUNA</option>
               <option value="SIIS_OFQUINDIO">OFTA QUINDIO</option>
               <option value="SIIS_VISION">OFTA VISION CALI</option>
-              <option value="SIIS_OTORRINOS">OTORRINOS</option>
+              <option value="SIIS_OTORRINOSCALI">OTORRINOS</option>
               <option value="SIIS_POSMEDICA">POSMÉDICA</option>
               <option value="SIIS_SANE">SANE</option>
               <option value="SIIS_SANDIEGO">SANDIEGO</option>
